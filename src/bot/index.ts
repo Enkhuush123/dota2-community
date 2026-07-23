@@ -47,6 +47,16 @@ client.on('error', (err: any) => {
   console.error('[Steam] Error:', err);
 });
 
+client.on('steamGuard', (domain, callback) => {
+  console.log(`[Steam] Steam Guard code required! (Domain: ${domain || 'Email/App'})`);
+  if (process.env.STEAM_GUARD_CODE) {
+    console.log(`[Steam] Submitting Steam Guard code from Environment Variables...`);
+    callback(process.env.STEAM_GUARD_CODE);
+  } else {
+    console.error(`[Steam] ❌ STEAM_GUARD_CODE is missing in .env! Please check your Email/App, get the code, and add STEAM_GUARD_CODE to Render Environment Variables, then restart!`);
+  }
+});
+
 // 2. Connect to GC
 dota2.on('ready', () => {
   console.log('[Dota 2] Connected to Game Coordinator (GC)');
