@@ -6,6 +6,16 @@ import SteamUser from 'steam-user';
 // @ts-expect-error no types available
 import Dota2 from 'dota2';
 import { prisma } from '../lib/prisma'; // Assumes running from src/bot using tsx
+import * as http from 'http';
+
+// Create a dummy HTTP server so Render Web Service doesn't crash
+const PORT = process.env.PORT || 8080;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Dota 2 Bot is running!\n');
+}).listen(PORT, () => {
+  console.log(`[HTTP] Dummy server listening on port ${PORT}`);
+});
 
 const STEAM_USERNAME = process.env.STEAM_USERNAME;
 const STEAM_PASSWORD = process.env.STEAM_PASSWORD;
