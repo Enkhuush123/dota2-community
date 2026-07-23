@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Лобби дүүрсэн байна" }, { status: 400 });
     }
 
-    if (match.players.find(p => p.userId === session.userId)) {
+    if (match.players.find((p: any) => p.userId === session.userId)) {
       return NextResponse.json({ error: "Та энэ лоббинд орсон байна" }, { status: 400 });
     }
 

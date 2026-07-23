@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+// @ts-expect-error no types available
 import SteamUser from 'steam-user';
 // @ts-expect-error
 import Dota2 from 'dota2';
@@ -32,7 +33,7 @@ client.on('loggedOn', () => {
   client.gamesPlayed([570]);
 });
 
-client.on('error', (err) => {
+client.on('error', (err: any) => {
   console.error('[Steam] Error:', err);
 });
 
