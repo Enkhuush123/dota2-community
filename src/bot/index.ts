@@ -3,7 +3,7 @@ dotenv.config();
 
 // @ts-expect-error no types available
 import SteamUser from 'steam-user';
-// @ts-expect-error
+// @ts-expect-error no types available
 import Dota2 from 'dota2';
 import { prisma } from '../lib/prisma'; // Assumes running from src/bot using tsx
 

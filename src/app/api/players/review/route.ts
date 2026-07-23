@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       where: { targetId }
     });
 
-    const positiveCount = allReviews.filter(r => r.isPositive).length;
+    const positiveCount = allReviews.filter((r: any) => r.isPositive).length;
     let newScore = 100;
     
     if (allReviews.length > 0) {
