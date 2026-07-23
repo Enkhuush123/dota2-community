@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  username     String        @unique
+  passwordHash String
+  rank         String
+  position     String
+  dota2Id      String?
+  balance      Float         @default(0.0)
+  role         String        @default("USER") // USER, ADMIN
+  trustScore   Int           @default(100) // 0 to 100 percentage
+  lastSeen     DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  matches      MatchPlayer[]
+  transactions Transaction[]
+  
+  // Relations for friends and invites
+  friends         Friendship[]  @relation("UserFriends")
+  friendOf        Friendship[]  @relation("FriendUsers")
+  sentInvites     PartyInvite[] @relation("SentInvites")
+  receivedInvites PartyInvite[] @relation("ReceivedInvites")
+  
+  // Reviews
+  reviewsGiven    UserReview[]  @relation("ReviewGiver")
+  reviewsReceived UserReview[]  @relation("ReviewReceiver")
+}
+
+model UserReview {
+  id          String   @id @default(uuid())
+  reviewerId  String
+  targetId    String
+  isPositive  Boolean  // true for Like, false for Dislike
+  createdAt   DateTime @default(now())
+
+  reviewer    User     @relation("ReviewGiver", fields: [reviewerId], references: [id])
+  target      User     @relation("ReviewReceiver", fields: [targetId], references: [id])
+
+  @@unique([reviewerId, targetId]) // A user can only review another user once
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userId    String
+  friendId  String
+  status    String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserFriends", fields: [userId], references: [id])
+  friend    User     @relation("FriendUsers", fields: [friendId], references: [id])
+
+  @@unique([userId, friendId])
+}
+
+model PartyInvite {
+  id          String   @id @default(uuid())
+  senderId    String
+  receiverId  String
+  status      String   @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  createdAt   DateTime @default(now())
+
+  sender      User     @relation("SentInvites", fields: [senderId], references: [id])
+  receiver    User     @relation("ReceivedInvites", fields: [receiverId], references: [id])
+}
+
+model Match {
+  id           String        @id @default(uuid())
+  lobbyName    String
+  lobbyPassword String
+  status       String        @default("PENDING") // PENDING, ONGOING, COMPLETED, CANCELLED
+  stakeAmount  Float         @default(0.0)
+  winnerTeam   String?       // RADIANT, DIRE
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  players      MatchPlayer[]
+}
+
+model MatchPlayer {
+  id        String   @id @default(uuid())
+  matchId   String
+  userId    String
+  team      String?  // RADIANT, DIRE
+  match     Match    @relation(fields: [matchId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  joinedAt  DateTime @default(now())
+
+  @@unique([matchId, userId])
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  amount      Float
+  type        String   // DEPOSIT, WITHDRAWAL, BET_DEDUCT, BET_WIN
+  status      String   @default("PENDING") // PENDING, COMPLETED, REJECTED
+  description String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
