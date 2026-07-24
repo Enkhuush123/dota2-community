@@ -25,7 +25,9 @@ if (!STEAM_USERNAME || !STEAM_PASSWORD) {
   process.exit(1);
 }
 
-const client = new SteamUser();
+const client = new SteamUser({
+  protocol: SteamUser.EConnectionProtocol.WebSocket
+});
 const dota2 = new Dota2.Dota2Client(client, true, true);
 
 let isGcReady = false;
