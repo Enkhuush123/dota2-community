@@ -41,6 +41,7 @@ client.on('loggedOn', () => {
   client.setPersona(SteamUser.EPersonaState.Online);
   // Start Dota 2
   client.gamesPlayed([570]);
+  dota2.launch();
 });
 
 client.on('error', (err: any) => {
