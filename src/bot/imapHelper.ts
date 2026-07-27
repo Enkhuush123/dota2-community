@@ -9,7 +9,8 @@ export async function fetchSteamGuardCode(targetUsername: string): Promise<strin
       host: 'imap.gmail.com',
       port: 993,
       tls: true,
-      authTimeout: 3000,
+      authTimeout: 15000,
+      connTimeout: 15000,
       tlsOptions: { rejectUnauthorized: false }
     }
   };

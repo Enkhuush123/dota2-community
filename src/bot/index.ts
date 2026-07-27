@@ -5,7 +5,13 @@ import { fetchSteamGuardCode } from './imapHelper';
 import SteamUser from 'steam-user';
 // @ts-expect-error no types available
 import Dota2 from 'dota2';
+import { Dota2User } from 'dota2-user';
 import { prisma } from '../lib/prisma';
+
+// Patch node-dota2 to support visibility, since it's missing in their hardcoded schema
+if (Dota2._lobbyOptions) {
+  Dota2._lobbyOptions.visibility = "number";
+}
 import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -65,6 +71,7 @@ console.log(`[Bot] Initializing ${accounts.length} bots...`);
 class DotaBot {
   public client: any;
   public dota2: any;
+  public dota2User: any;
   public isGcReady: boolean = false;
   public steamId: string | null = null;
   public username: string;
@@ -77,81 +84,62 @@ class DotaBot {
     this.guardCode = account.guardCode || account.guard_code;
 
     this.client = new SteamUser({ 
-      protocol: SteamUser.EConnectionProtocol.WebSocket,
       dataDirectory: path.join(steamDataPath, this.username)
     });
 
-    // MOCK: dota2 package uses legacy steam ClientToGC which requires .send
+    // MOCK 1: Route outgoing legacy GC messages
+    // We MUST ignore message 84 (ClientGamesPlayed) because steam-user v4 uses 5404
     this.client.send = (header: any, body: any, callback: any) => {
-      // Ignore the old gamesPlayed call which crashes (84)
-      if (header && (header.msg === 84 || header === 84)) return;
+      if (header && (header.msg === 84 || header === 84)) return; // Ignore legacy 84
       if (this.client._send) {
         this.client._send(header, body, callback);
       }
     };
 
     this.dota2 = new Dota2.Dota2Client(this.client, true, true);
+    this.dota2User = new Dota2User(this.client);
 
-    // MOCK: Route GC messages natively through steam-user instead of node-steam legacy format
-    this.dota2._gc.send = (header: any, body: Buffer, callback: any) => {
-      console.log(`[Dota2-${this.username}] -> Sending GC msg ${header.msg}`);
-      let protoBufHeader = header.proto || {};
-      
-      // Node-steam uses legacy field names, map them to steam-user ones if needed
-      if (protoBufHeader.client_steam_id) protoBufHeader.steamid = protoBufHeader.client_steam_id;
-      if (protoBufHeader.source_app_id) protoBufHeader.routing_appid = protoBufHeader.source_app_id;
-      
-      // Explicitly inject if missing
-      if (!protoBufHeader.routing_appid) protoBufHeader.routing_appid = 570;
-      if (!protoBufHeader.steamid && this.client.steamID) {
-          protoBufHeader.steamid = this.client.steamID.getSteamID64();
-      }
-
-      this.client.sendToGC(570, header.msg, protoBufHeader, body, callback);
-    };
-
-    // MOCK: Fix ClientHello using Source 2 engine instead of Source 1
-    this.dota2._sendClientHello = () => {
-      if (this.dota2._gcReady) {
-        if (this.dota2._gcClientHelloIntervalId) {
-          clearInterval(this.dota2._gcClientHelloIntervalId);
-          this.dota2._gcClientHelloIntervalId = null;
-        }
-        return;
-      }
-      if (this.dota2._gcClientHelloCount > 10) {
-        this.dota2.Logger.warn("ClientHello has taken longer than 30 seconds! Reporting timeout...")
-        this.dota2._gcClientHelloCount = 0;
-        this.dota2.emit("hellotimeout");
-      }
-      
-      this.dota2.Logger.debug("Sending ClientHello with engine: 1 (Source 2)");
-      
-      if (this.dota2._gc) {
-        this.dota2._gc.send(
-          {msg: Dota2.schema.EGCBaseClientMsg.k_EMsgGCClientHello, proto: {}},
-          new Dota2.schema.CMsgClientHello({
-            engine: 1, // 1 is Source 2
-            client_session_need: 104,
-            client_launcher: 0,
-          }).toBuffer()
-        );
-      }
-      this.dota2._gcClientHelloCount++;
-    };
-
-    // Bridge incoming GC messages from steam-user to dota2's legacy GC handler
+    // MOCK 2: Route incoming GC messages
+    // In steam-user v4, the 'message' event emits a raw Buffer, so dota2's SteamGameCoordinator
+    // drops it (body.appid is undefined). We use receivedFromGC to manually inject the messages.
     this.client.on('receivedFromGC', (appid: number, msgType: number, payload: Buffer, callback: any) => {
-      if (appid === 570) {
-        console.log(`[Dota2-${this.username}] <- Received GC msg ${msgType}`);
-        if (this.dota2._gc) {
+      if (appid === 570 && this.dota2._gc) {
+        // console.log(`[Dota2-${this.username}] <- Received GC msg ${msgType}`);
+        try {
           this.dota2._gc.emit('message', { msg: msgType, proto: {} }, payload, callback);
+        } catch (err) {
+          console.error(`[Dota2-${this.username}] Error processing GC message ${msgType}:`, err);
         }
       }
     });
 
+    // MOCK 3: Intercept _gc.send directly to bypass node-steam CMsgGCClient wrapper
+    this.dota2._gc.send = (header: any, body: Buffer, callback: any) => {
+      // Fix steam-user v4 callback signature mismatch
+      const wrappedCallback = callback ? (appid: number, msgType: number, payload: Buffer) => {
+        callback({ msg: msgType }, payload);
+      } : undefined;
+      this.client.sendToGC(570, header.msg, {}, body, wrappedCallback);
+    };
+
     this.setupListeners();
-    this.login();
+  }
+
+  public async start(): Promise<void> {
+    return new Promise((resolve) => {
+      let isDone = false;
+      const done = () => {
+        if (!isDone) {
+          isDone = true;
+          resolve();
+        }
+      };
+      this.dota2.once('ready', done);
+      this.client.once('error', done);
+      // Wait up to 2 minutes max per bot so we don't get stuck forever
+      setTimeout(done, 120000); 
+      this.login();
+    });
   }
 
   private login() {
@@ -165,7 +153,7 @@ class DotaBot {
     this.client.on('loggedOn', () => {
       this.steamId = this.client.steamID?.getSteam3RenderedID();
       console.log(`[Steam-${this.username}] Logged in as ${this.steamId}`);
-      this.client.setPersona(SteamUser.EPersonaState.Online);
+      this.client.setPersona(SteamUser.EPersonaState.Online, "MNG_BOT_" + this.username);
       
       // Request free license for Dota 2 in case the account is brand new
       this.client.requestFreeLicense([570], (err, grantedApps, grantedPackages) => {
@@ -175,15 +163,22 @@ class DotaBot {
           console.log(`[Steam-${this.username}] Granted free license for apps:`, grantedApps);
         }
         
+        // 1. Tell Steam we are playing Dota 2 (Sends modern 5404 message)
         this.client.gamesPlayed([570]);
       });
     });
 
+    // 2. Wait for Steam to acknowledge we are playing Dota 2
     this.client.on('appLaunched', (appid: number) => {
       if (appid === 570) {
-        console.log(`[Steam-${this.username}] appLaunched 570, starting dota2...`);
-        this.dota2.launch();
+        console.log(`[Steam-${this.username}] appLaunched 570, waiting for GC...`);
+        // We DO NOT call this.dota2.launch() here!
+        // dota2-user will automatically detect appLaunched and handle the GC connection natively.
       }
+    });
+
+    this.dota2User.on('connectedToGC', () => {
+      console.log(`[Dota2-${this.username}] dota2-user connected! GC is ready.`);
     });
 
     this.client.on('debug', (msg: string) => {
@@ -237,15 +232,17 @@ class DotaBot {
     if (!lobby || !lobby.game_name) return;
 
     try {
-      const match = await prisma.match.findFirst({
-        where: { lobbyName: lobby.game_name, status: "LOBBY_CREATED" },
-        include: { players: { include: { user: true } } }
-      });
-
-      if (!match) return;
-
       const matchOutcome = lobby.match_outcome;
+      // ONLY query the database if the match is actually finished!
+      // Checking this first saves 99% of Prisma queries and prevents connection exhaustion.
       if (matchOutcome === 2 || matchOutcome === 3) {
+        const match = await prisma.match.findFirst({
+          where: { lobbyName: lobby.game_name, status: "LOBBY_CREATED" },
+          include: { players: { include: { user: true } } }
+        });
+
+        if (!match) return;
+
         console.log(`[Dota2-${this.username}] Match ${match.lobbyName} finished! Outcome: ${matchOutcome}`);
         
         const winnerTeam = matchOutcome === 2 ? "RADIANT" : "DIRE";
@@ -294,18 +291,21 @@ class DotaBot {
     const options = {
       game_name: match.lobbyName,
       pass_key: match.lobbyPassword,
-      server_region: 3, 
+      server_region: 5, // 5 = Singapore
       game_mode: 1, 
       allow_cheats: false,
       fill_with_bots: false,
       allow_spectating: true,
-      penalty_level: 0,
       visibility: 0
     };
 
-    this.dota2.createPracticeLobby(options, async (err: any) => {
-      if (err) {
-        console.error(`[Dota2-${this.username}] Failed to create lobby ${match.lobbyName}:`, err);
+    this.dota2.createPracticeLobby(options, async (err: any, response: any) => {
+      // node-dota2 has a bug where it checks `response.result` instead of `response.eresult`
+      const actualErr = err || (response && response.eresult !== 1 ? response.eresult : null);
+      if (actualErr) {
+        console.error(`[Dota2-${this.username}] Failed to create lobby ${match.lobbyName}:`, actualErr, response);
+        // We might have failed because we are stuck in a lobby. Try leaving again.
+        this.dota2.leavePracticeLobby(() => {});
         // If failed, unassign bot so another can try
         await prisma.match.update({
           where: { id: match.id },
@@ -313,22 +313,42 @@ class DotaBot {
         });
       } else {
         console.log(`[Dota2-${this.username}] Successfully created lobby: ${match.lobbyName}`);
+        
+        // Temporarily comment out moving to broadcaster to see if 0 players hides the lobby
+        // this.dota2.joinPracticeLobbyBroadcastChannel(1, () => {
+        console.log(`[Dota2-${this.username}] Staying in default slot to keep lobby visible...`);
+        
+        // Automatically invite all players to the lobby!
+        if (match.players) {
+          match.players.forEach((p: any) => {
+            const steamId = p.user?.steamId || p.steamId;
+            if (steamId) {
+              console.log(`[Dota2-${this.username}] Inviting player ${steamId} to lobby...`);
+              this.dota2.inviteToLobby(steamId);
+            }
+          });
+        }
+        // });
+
         await prisma.match.update({
           where: { id: match.id },
-          data: { status: "LOBBY_CREATED" } 
+          data: { status: "LOBBY_CREATED" }
         });
       }
     });
   }
 }
 
-// 4. Initialize all bots with stagger to prevent Steam login rate limits
+// 4. Initialize all bots sequentially with stagger to prevent Steam login rate limits
 const bots: DotaBot[] = [];
 (async () => {
   for (let i = 0; i < accounts.length; i++) {
     console.log(`[Bot] Initializing bot ${i + 1}/${accounts.length}...`);
-    bots.push(new DotaBot(accounts[i]));
+    const bot = new DotaBot(accounts[i]);
+    bots.push(bot);
+    await bot.start();
     if (i < accounts.length - 1) {
+      console.log(`[Bot] Waiting 30 seconds before next bot to avoid Steam rate limits...`);
       // Stagger logins by 30 seconds to avoid Steam's AccountLoginDeniedThrottle (IP ban)
       await new Promise(res => setTimeout(res, 30000));
     }
@@ -340,7 +360,7 @@ setInterval(async () => {
   try {
     const pendingMatches = await prisma.match.findMany({
       where: { status: "PENDING" },
-      include: { players: true }
+      include: { players: { include: { user: true } } }
     });
 
     if (pendingMatches.length === 0) return;
