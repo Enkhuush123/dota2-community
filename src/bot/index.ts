@@ -176,10 +176,14 @@ class DotaBot {
         }
         
         this.client.gamesPlayed([570]);
-        setTimeout(() => {
-          this.dota2.launch();
-        }, 3000); // Wait 3 seconds for Steam to register us as in-game
       });
+    });
+
+    this.client.on('appLaunched', (appid: number) => {
+      if (appid === 570) {
+        console.log(`[Steam-${this.username}] appLaunched 570, starting dota2...`);
+        this.dota2.launch();
+      }
     });
 
     this.client.on('debug', (msg: string) => {
