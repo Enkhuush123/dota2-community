@@ -16,11 +16,19 @@ model User {
   balance      Float         @default(0.0)
   role         String        @default("USER") // USER, ADMIN
   trustScore   Int           @default(100) // 0 to 100 percentage
+  mmr          Int           @default(1000)
+  totalEarned  Float         @default(0.0)
+  wins         Int           @default(0)
+  losses       Int           @default(0)
+  winStreak    Int           @default(0)
   lastSeen     DateTime      @default(now())
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   matches      MatchPlayer[]
   transactions Transaction[]
+  lobbyMessages LobbyMessage[]
+  lobbyInvitesReceived LobbyInvite[] @relation("ReceivedLobbyInvites")
+  lobbyInvitesSent     LobbyInvite[] @relation("SentLobbyInvites")
   
   // Relations for friends and invites
   friends         Friendship[]  @relation("UserFriends")
@@ -77,9 +85,13 @@ model Match {
   status       String        @default("PENDING") // PENDING, ONGOING, COMPLETED, CANCELLED
   stakeAmount  Float         @default(0.0)
   winnerTeam   String?       // RADIANT, DIRE
+  botAccountId String?       // ID of the bot handling this match
+  dota2MatchId String?       // Official Dota 2 Match ID for OpenDota analysis
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   players      MatchPlayer[]
+  messages     LobbyMessage[]
+  lobbyInvites LobbyInvite[]
 }
 
 model MatchPlayer {
@@ -101,6 +113,34 @@ model Transaction {
   type        String   // DEPOSIT, WITHDRAWAL, BET_DEDUCT, BET_WIN
   status      String   @default("PENDING") // PENDING, COMPLETED, REJECTED
   description String?
+  bankName    String?
+  accountNumber String?
+  accountName String?
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id])
 }
+
+model LobbyMessage {
+  id        String   @id @default(uuid())
+  matchId   String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LobbyInvite {
+  id          String   @id @default(uuid())
+  matchId     String
+  senderId    String
+  receiverId  String
+  status      String   @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  createdAt   DateTime @default(now())
+
+  sender      User     @relation("SentLobbyInvites", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User     @relation("ReceivedLobbyInvites", fields: [receiverId], references: [id], onDelete: Cascade)
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+}
+

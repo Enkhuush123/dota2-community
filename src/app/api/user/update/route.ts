@@ -10,14 +10,26 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { rank, position, dota2Id } = await req.json();
+    const { rank, position, dota2Id, username } = await req.json();
+
+    if (username && (username.trim().length < 3 || username.trim().length > 20)) {
+      return NextResponse.json({ error: "Нэр 3-аас 20 тэмдэгттэй байх ёстой" }, { status: 400 });
+    }
+
+    if (username) {
+      const existing = await prisma.user.findUnique({ where: { username: username.trim() } });
+      if (existing && existing.id !== session.userId) {
+        return NextResponse.json({ error: "Энэ нэр бүртгэлтэй байна" }, { status: 400 });
+      }
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: session.userId },
       data: {
         rank,
         position,
-        dota2Id
+        dota2Id,
+        ...(username ? { username: username.trim() } : {})
       }
     });
 

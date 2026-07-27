@@ -2,14 +2,40 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Wallet, Shield, Trophy, Activity, ArrowUpRight, ArrowDownRight, Star } from "lucide-react";
+import { Wallet, Shield, Trophy, Activity, ArrowUpRight, ArrowDownRight, Star, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNum, setAccountNum] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [depositMsg, setDepositMsg] = useState("");
+  const [withdrawMsg, setWithdrawMsg] = useState("");
+  const [selectedMatchForReview, setSelectedMatchForReview] = useState<any>(null);
+
+  const handleRate = async (targetId: string, isPositive: boolean) => {
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId, isPositive })
+      });
+      if (res.ok) {
+        toast.success(isPositive ? "Like дарлаа 👍" : "Dislike дарлаа 👎");
+        // Update local user state if we rated ourselves? No, we rate others.
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Алдаа гарлаа");
+      }
+    } catch (e) {
+      toast.error("Дотоод алдаа гарлаа");
+    }
+  };
 
   useEffect(() => {
     fetch("/api/user")
@@ -43,23 +69,36 @@ export default function DashboardPage() {
     }
   };
 
-  const handleWithdraw = async () => {
-    if (!amount) return;
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!withdrawAmount || !bankName || !accountNum || !accountName) {
+      setWithdrawMsg("Бүх мэдээллийг бөглөнө үү!");
+      return;
+    }
     try {
       const res = await fetch("/api/wallet/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: parseFloat(amount), description: "Татах хүсэлт" }),
+        body: JSON.stringify({ 
+          amount: parseFloat(withdrawAmount), 
+          description: "Зарлага",
+          bankName,
+          accountNumber: accountNum,
+          accountName
+        }),
       });
       if (res.ok) {
-        setDepositMsg("Татах хүсэлт амжилттай илгээгдлээ.");
-        setAmount("");
+        setWithdrawMsg("Зарлагын хүсэлт амжилттай илгээгдлээ. Админ шалгаад шилжүүлэх болно.");
+        setWithdrawAmount("");
+        setBankName("");
+        setAccountNum("");
+        setAccountName("");
         // Reload user to see new balance
         const u = await fetch("/api/user").then(r => r.json());
         setUser(u.user);
       } else {
         const data = await res.json();
-        setDepositMsg(data.error || "Алдаа гарлаа");
+        setWithdrawMsg(data.error || "Алдаа гарлаа");
       }
     } catch (e) {
       console.error(e);
@@ -82,20 +121,25 @@ export default function DashboardPage() {
       const res = await fetch("/api/user/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rank: user.rank, position: user.position, dota2Id: user.dota2Id }),
+        body: JSON.stringify({ username: user.username, rank: user.rank, position: user.position, dota2Id: user.dota2Id }),
       });
       if (res.ok) {
-        alert("Профайл амжилттай шинэчлэгдлээ.");
+        toast.success("Профайл амжилттай шинэчлэгдлээ.");
       } else {
-        alert("Алдаа гарлаа");
+        toast.error("Алдаа гарлаа");
       }
     } catch (error) {
       console.error(error);
+      toast.error("Алдаа гарлаа");
     }
   };
 
   if (loading) {
-    return <div className="flex-1 flex items-center justify-center">Уншиж байна...</div>;
+    return (
+      <div className="flex-1 flex justify-center items-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return (
@@ -137,7 +181,15 @@ export default function DashboardPage() {
               <div className="p-3 bg-accent/20 rounded-lg"><Shield className="text-accent" /></div>
               <div>
                 <p className="text-sm text-gray-400">Ранк / Байрлал</p>
-                <p className="text-lg font-bold text-white">{user?.rank} | {user?.position}</p>
+                <p className="text-lg font-bold text-white mb-1">
+                  {user?.rank} | {user?.position}
+                  {user?.winStreak >= 3 && (
+                    <span className="ml-2 inline-flex items-center gap-1 text-xs font-bold text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20" title="Дараалж хожсон">
+                      🔥 {user?.winStreak}
+                    </span>
+                  )}
+                </p>
+                <p className="text-sm font-bold text-primary">MMR: {user?.mmr || 1000}</p>
               </div>
             </div>
             
@@ -162,7 +214,16 @@ export default function DashboardPage() {
 
       <div className="bg-secondary/20 p-6 rounded-xl border border-secondary/50 mb-8">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">Профайл шинэчлэх</h2>
-        <form onSubmit={handleUpdateProfile} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <form onSubmit={handleUpdateProfile} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Нэр (Nickname)</label>
+            <input 
+              type="text" 
+              value={user?.username || ""} 
+              onChange={e => setUser({...user, username: e.target.value})}
+              className="w-full px-3 py-2 bg-background border border-secondary rounded-md focus:outline-none focus:border-primary"
+            />
+          </div>
           <div>
             <label className="block text-sm mb-1 text-gray-400">Rank (Цол)</label>
             <select 
@@ -203,7 +264,7 @@ export default function DashboardPage() {
               className="w-full px-3 py-2 bg-background border border-secondary rounded-md focus:outline-none focus:border-primary"
             />
           </div>
-          <div className="md:col-span-3 flex justify-end">
+          <div className="lg:col-span-4 flex justify-end">
             <button type="submit" className="px-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-md font-medium transition-colors">
               Хадгалах
             </button>
@@ -213,43 +274,102 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Wallet Actions */}
-        <div className="bg-secondary/20 p-6 rounded-xl border border-secondary/50">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Activity className="w-5 h-5"/> Хэтэвч удирдлага</h2>
-          
-          <div className="space-y-4">
-            {depositMsg && <div className="p-3 bg-green-900/30 text-green-400 rounded border border-green-800/50 text-sm">{depositMsg}</div>}
+        <div className="flex flex-col gap-6">
+          {/* Deposit */}
+          <div className="bg-secondary/20 p-6 rounded-xl border border-secondary/50">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-green-400"><ArrowUpRight className="w-5 h-5"/> Орлого хийх</h2>
             
-            <div>
-              <label className="block text-sm mb-1">Мөнгөн дүн (₮)</label>
-              <input 
-                type="number" 
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-3 py-2 bg-background/50 border border-secondary rounded-md focus:outline-none focus:border-primary" 
-                placeholder="Жишээ нь: 5000"
-              />
-            </div>
-            
-            <div className="flex gap-4">
+            <div className="space-y-4">
+              {depositMsg && <div className="p-3 bg-green-900/30 text-green-400 rounded border border-green-800/50 text-sm">{depositMsg}</div>}
+              
+              <div>
+                <label className="block text-sm mb-1">Мөнгөн дүн (₮)</label>
+                <input 
+                  type="number" 
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full px-3 py-2 bg-background/50 border border-secondary rounded-md focus:outline-none focus:border-primary" 
+                  placeholder="Жишээ нь: 5000"
+                />
+              </div>
+              
               <button 
                 onClick={handleDeposit}
-                className="flex-1 flex justify-center items-center gap-2 bg-primary hover:bg-primary-hover text-white py-2 rounded-md font-medium transition-colors"
+                className="w-full flex justify-center items-center gap-2 bg-primary hover:bg-primary-hover text-white py-2 rounded-md font-medium transition-colors"
               >
-                <ArrowUpRight className="w-4 h-4"/> Орлого хийх
-              </button>
-              <button 
-                onClick={handleWithdraw}
-                className="flex-1 flex justify-center items-center gap-2 bg-secondary hover:bg-secondary/80 text-white py-2 rounded-md font-medium transition-colors border border-gray-600"
-              >
-                <ArrowDownRight className="w-4 h-4"/> Зарлага гаргах
+                Орлого хийх
               </button>
             </div>
+            
+            <div className="mt-6 p-4 bg-background/50 rounded-lg text-sm text-gray-400 border border-secondary/50">
+              <strong>Дансны мэдээлэл:</strong> <br />
+              Хаан банк: <strong className="text-white">5219441613 (Enkhbayar)</strong> <br />
+              Гүйлгээний утга дээр өөрийн бүртгүүлсэн нэр буюу <strong className="text-white">{user?.username}</strong> -г бичнэ үү. Админ шалгаад таны балансыг нэмэх болно.
+            </div>
           </div>
-          
-          <div className="mt-6 p-4 bg-background/50 rounded-lg text-sm text-gray-400 border border-secondary/50">
-            <strong>Дансны мэдээлэл:</strong> <br />
-            Хаан банк: 5000000000 (Болд) <br />
-            Гүйлгээний утга дээр өөрийн бүртгүүлсэн нэр буюу <strong>{user?.username}</strong> -г бичнэ үү. Админ шалгаад таны балансыг нэмэх болно.
+
+          {/* Withdraw */}
+          <div className="bg-secondary/20 p-6 rounded-xl border border-secondary/50">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-red-400"><ArrowDownRight className="w-5 h-5"/> Зарлага гаргах</h2>
+            
+            <form onSubmit={handleWithdraw} className="space-y-4">
+              {withdrawMsg && <div className="p-3 bg-blue-900/30 text-blue-400 rounded border border-blue-800/50 text-sm">{withdrawMsg}</div>}
+              
+              <div>
+                <label className="block text-sm mb-1">Авах дүн (₮)</label>
+                <input 
+                  type="number" 
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="w-full px-3 py-2 bg-background/50 border border-secondary rounded-md focus:outline-none focus:border-primary" 
+                  placeholder="Жишээ нь: 10000"
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm mb-1">Банк</label>
+                  <input 
+                    type="text" 
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="w-full px-3 py-2 bg-background/50 border border-secondary rounded-md focus:outline-none focus:border-primary" 
+                    placeholder="Жишээ нь: Хаан банк"
+                    required
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-sm mb-1">Дансны нэр</label>
+                  <input 
+                    type="text" 
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    className="w-full px-3 py-2 bg-background/50 border border-secondary rounded-md focus:outline-none focus:border-primary" 
+                    placeholder="Хүлээн авагчийн нэр"
+                    required
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm mb-1">Дансны дугаар</label>
+                  <input 
+                    type="text" 
+                    value={accountNum}
+                    onChange={(e) => setAccountNum(e.target.value)}
+                    className="w-full px-3 py-2 bg-background/50 border border-secondary rounded-md focus:outline-none focus:border-primary" 
+                    placeholder="Дансны дугаараа оруулна уу"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full flex justify-center items-center gap-2 bg-secondary hover:bg-secondary/80 text-white py-2 rounded-md font-medium transition-colors border border-gray-600 mt-2"
+              >
+                Зарлага гаргах хүсэлт илгээх
+              </button>
+            </form>
           </div>
         </div>
 
@@ -295,7 +415,8 @@ export default function DashboardPage() {
                     <th className="p-3">Бооцоо</th>
                     <th className="p-3">Баг</th>
                     <th className="p-3">Төлөв</th>
-                    <th className="p-3 rounded-tr-lg">Үр дүн</th>
+                    <th className="p-3">Үр дүн</th>
+                    <th className="p-3 rounded-tr-lg text-right">Үйлдэл</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -316,6 +437,21 @@ export default function DashboardPage() {
                           <span className="text-gray-400">Хүлээгдэж байна</span>
                         )}
                       </td>
+                      <td className="p-3 text-right flex justify-end gap-2">
+                        {m.match.status === "COMPLETED" && (
+                          <button 
+                            onClick={() => setSelectedMatchForReview({ ...m.match, myTeam: m.team })}
+                            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded border border-yellow-500/20 transition-colors"
+                          >
+                            Үнэлэх
+                          </button>
+                        )}
+                        {m.match.dota2MatchId && (
+                          <a href={`/match/${m.match.dota2MatchId}`} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded border border-blue-500/20 transition-colors">
+                            Анализ
+                          </a>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -324,6 +460,59 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+      {/* Review Modal */}
+      {selectedMatchForReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-secondary/90 border border-secondary p-6 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500" />
+                Тоглогчдыг үнэлэх
+              </h3>
+              <button onClick={() => setSelectedMatchForReview(null)} className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-400 mb-4">
+              Та {selectedMatchForReview.lobbyName} тоглолтод хамт байсан тоглогчдод үнэлгээ өгснөөр комьюнитийн чанарыг сайжруулахад туслах болно.
+            </p>
+
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+              {selectedMatchForReview.players
+                ?.filter((p: any) => p.userId !== user?.id && p.team === selectedMatchForReview.myTeam)
+                .map((p: any) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 bg-background/50 rounded-xl border border-secondary/50">
+                    <div>
+                      <p className="font-bold text-white">{p.user?.username || "Unknown"}</p>
+                      <p className="text-xs text-gray-400">{p.user?.rank} | {p.user?.position}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleRate(p.userId, true)}
+                        className="p-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-lg border border-green-500/20 transition-colors"
+                        title="Сайн тоглогч (Like)"
+                      >
+                        <ThumbsUp className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleRate(p.userId, false)}
+                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg border border-red-500/20 transition-colors"
+                        title="Муу тоглогч / Токсик (Dislike)"
+                      >
+                        <ThumbsDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+              ))}
+              
+              {selectedMatchForReview.players?.filter((p: any) => p.userId !== user?.id && p.team === selectedMatchForReview.myTeam).length === 0 && (
+                <p className="text-center text-gray-500 py-4">Энэ багт өөр тоглогч олдсонгүй.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

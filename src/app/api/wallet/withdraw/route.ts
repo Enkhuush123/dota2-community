@@ -10,7 +10,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Нэвтрээгүй байна" }, { status: 401 });
     }
 
-    const { amount, description } = await req.json();
+    const { amount, description, bankName, accountNumber, accountName } = await req.json();
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: "Хүчинтэй дүн оруулна уу" }, { status: 400 });
@@ -33,6 +33,9 @@ export async function POST(req: Request) {
           type: "WITHDRAWAL",
           status: "PENDING", // Админ баталгаажуулсны дараа мөнгө шилжүүлэгдэнэ
           description,
+          bankName,
+          accountNumber,
+          accountName
         },
       }),
       prisma.user.update({

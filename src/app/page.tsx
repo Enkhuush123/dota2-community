@@ -5,274 +5,263 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Swords,
-  Shield,
   Trophy,
   Users,
-  UserPlus,
   Send,
-  ThumbsUp,
-  ThumbsDown,
+  Activity,
+  ChevronRight,
+  
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Home() {
-  const router = useRouter();
-  const [players, setPlayers] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
+  
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [lobbies, setLobbies] = useState<any[]>([]);
+  const [myLobbyId, setMyLobbyId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/user")
+    fetch("/api/online")
       .then((res) => res.json())
-      .then((data) => setUser(data.user))
+      .then((data) => setOnlineUsers(data.users?.slice(0, 5) || []))
       .catch(() => {});
-    fetch("/api/players")
+      
+    fetch("/api/leaderboard")
       .then((res) => res.json())
-      .then((data) => setPlayers(data.players || []))
+      .then((data) => setLeaderboard(data.users?.slice(0, 5) || []))
       .catch(() => {});
+      
     fetch("/api/lobbies")
       .then((res) => res.json())
       .then((data) => setLobbies(data.matches?.slice(0, 4) || []))
       .catch(() => {});
+      
+    fetch("/api/user")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.user?.matches) {
+          const active = data.user.matches.find((m: any) => m.match.status === "PENDING" || m.match.status === "LOBBY_CREATED");
+          if (active) setMyLobbyId(active.matchId);
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  const handleReview = async (targetId: string, isPositive: boolean) => {
-    if (!user) {
-      router.push("/login");
+  const handleInvite = async (userId: string) => {
+    if (!myLobbyId) {
+      toast.error("Та эхлээд лоббинд орсон байх шаардлагатай.");
       return;
     }
     try {
-      const res = await fetch("/api/players/review", {
+      const res = await fetch("/api/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetId, isPositive }),
+        body: JSON.stringify({ receiverId: userId, matchId: myLobbyId })
       });
       if (res.ok) {
-        const data = await fetch("/api/players").then((r) => r.json());
-        setPlayers(data.players || []);
+        toast.success("Урилга илгээгдлээ");
       } else {
-        const errData = await res.json();
-        alert(errData.error);
+        const data = await res.json();
+        toast.error(data.error || "Алдаа гарлаа");
       }
     } catch (e) {
       console.error(e);
     }
   };
 
-  const getTrustColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 50) return "text-yellow-500";
-    return "text-red-500";
+  // Animation variants
+  const containerVars = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.3 }
+    }
+  };
+  
+  const itemVars: any = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
 
   return (
-    <div className="flex flex-col items-center">
-      {/* Hero Section */}
-      <section className="w-full relative py-24 flex flex-col items-center justify-center text-center px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-background to-background -z-10"></div>
+    <div className="relative min-h-[calc(100vh-4rem)] flex flex-col lg:flex-row items-center justify-center overflow-hidden bg-[#030712]">
+      {/* Abstract Background */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] rounded-full bg-primary/20 blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[60%] rounded-full bg-accent/20 blur-[120px]" style={{ animationDuration: '7s' }}></div>
+        <div className="absolute top-[20%] right-[20%] w-[20%] h-[20%] rounded-full bg-yellow-500/10 blur-[80px]"></div>
+        
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      </div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6"
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10 flex flex-col lg:flex-row items-center gap-12 xl:gap-20">
+        
+        {/* Left Side: Hero Text & Buttons */}
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="flex-1 text-center lg:text-left pt-10 lg:pt-0"
         >
-          Монголын <span className="text-primary">Dota 2</span> <br />
-          Платформ
-        </motion.h1>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] mb-8">
+            Монголын <br className="hidden lg:block"/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative">
+              Dota 2
+              <div className="absolute -inset-2 bg-primary/20 blur-2xl -z-10 rounded-full"></div>
+            </span> <br className="hidden lg:block"/>
+            Платформ
+          </h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-lg md:text-xl text-gray-400 max-w-2xl mb-10"
-        >
-          Автомат лобби систем, найдвартай тооцоолол, шударга өрсөлдөөн. Өөрийн
-          ур чадвараа баталж, бодит шагнал хожоорой.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-4"
-        >
-          <a
-            href="/lobbies/create?type=free"
-            className="px-8 py-4 bg-secondary hover:bg-secondary/80 text-white rounded-lg font-bold text-lg transition-all border border-gray-700"
-          >
-            Энгийн Лобби үүсгэх
-          </a>
-          <a
-            href="/lobbies/create?type=bet"
-            className="px-8 py-4 bg-primary hover:bg-primary-hover text-white rounded-lg font-bold text-lg transition-all shadow-[0_0_20px_rgba(212,56,56,0.4)] flex items-center gap-2 justify-center"
-          >
-            <Swords className="w-5 h-5" /> Бооцоотой Лобби үүсгэх
-          </a>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="/lobbies/create?type=bet"
+              className="relative group px-8 py-4 bg-primary text-white rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 overflow-hidden shadow-[0_0_40px_-10px_rgba(212,56,56,0.6)]"
+            >
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
+              <Swords className="w-5 h-5 relative z-10" /> 
+              <span className="relative z-10">Бооцоотой Тоглох</span>
+            </motion.a>
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="/lobbies/create?type=free"
+              className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl font-bold text-lg transition-all flex items-center justify-center backdrop-blur-sm"
+            >
+              Энгийн Лобби
+            </motion.a>
+          </div>
         </motion.div>
-      </section>
 
-      {/* Features */}
-      <section className="w-full max-w-6xl mx-auto py-12 px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <FeatureCard
-          icon={<Swords className="w-10 h-10 text-primary" />}
-          title="Автомат Лобби"
-          description="Манай систем автоматаар Dota 2 лобби үүсгэж, нууц үг өгөх ба үр дүнг автоматаар тооцоолно."
-        />
-        <FeatureCard
-          icon={<Shield className="w-10 h-10 text-accent" />}
-          title="Найдвартай Систем"
-          description="Мөнгөө байршуулах болон татаж авах үйл явц нь хурдан бөгөөд 100% баталгаатай."
-        />
-        <FeatureCard
-          icon={<Trophy className="w-10 h-10 text-yellow-500" />}
-          title="Тэмцээн Уралдаан"
-          description="Өдөр тутмын урамшуулал, чансаа (leaderboard) болон долоо хоног бүрийн тэмцээнүүд."
-        />
-      </section>
-
-      {/* Main Content (Grid) */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mb-24 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left: Recent Lobbies */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-yellow-500" /> Сүүлийн Лоббинууд
-            </h2>
-            <a href="/lobbies" className="text-sm text-primary hover:underline">
-              Бүх лоббиг харах →
-            </a>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {lobbies.length === 0 ? (
-              <p className="text-gray-400 col-span-2">
-                Одоогоор лобби алга байна.
-              </p>
-            ) : (
-              lobbies.map((lobby) => (
-                <div
-                  key={lobby.id}
-                  className="bg-secondary/20 p-5 rounded-xl border border-secondary/50 hover:bg-secondary/40 transition-colors flex flex-col justify-between"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-bold text-lg">{lobby.lobbyName}</h3>
-                    <span className="text-xs px-2 py-1 bg-background/80 rounded border border-secondary flex items-center gap-1">
-                      <Users className="w-3 h-3" /> {lobby.players.length}/10
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm mb-4">
-                      Бооцоо:{" "}
-                      {lobby.stakeAmount > 0 ? (
-                        <span className="text-green-400 font-bold">
-                          ₮{lobby.stakeAmount}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">Энгийн</span>
-                      )}
-                    </p>
-                    <a
-                      href="/lobbies"
-                      className="block text-center w-full py-2 bg-background/50 hover:bg-accent hover:border-transparent text-white rounded text-sm transition-colors border border-secondary/50"
-                    >
-                      Орж харах
-                    </a>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Right: Online Players */}
-        <div className="lg:col-span-1">
-          <div className="bg-secondary/10 rounded-2xl border border-secondary/50 p-6 h-full min-h-[400px]">
-            <div className="flex items-center gap-2 mb-6 border-b border-secondary/50 pb-4">
-              <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-              <h2 className="text-xl font-bold">Онлайн Тоглогчид</h2>
+        {/* Right Side: Data Widgets */}
+        <motion.div 
+          variants={containerVars}
+          initial="hidden"
+          animate="show"
+          className="flex-1 w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6"
+        >
+          {/* Widget 1: Online Players (Spans 1 col, high height) */}
+          <motion.div variants={itemVars} className="md:row-span-2 flex flex-col bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-green-500/20"></div>
+            
+            <div className="flex justify-between items-center mb-6 relative z-10">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+                <Activity className="w-5 h-5 text-green-400 animate-pulse" /> Онлайн
+              </h2>
+              <a href="/online" className="text-xs font-bold text-green-400 hover:text-green-300 flex items-center">Бүгд <ChevronRight className="w-3 h-3"/></a>
             </div>
 
-            <div className="space-y-4">
-              {players.length === 0 ? (
-                <p className="text-gray-400 text-sm">
-                  Одоогоор тоглогч алга байна.
-                </p>
+            <div className="space-y-3 flex-1 relative z-10">
+              {onlineUsers.length === 0 ? (
+                <p className="text-white/40 text-sm text-center py-4">Одоогоор хүн алга.</p>
               ) : (
-                players.map((p) => (
-                  <div
-                    key={p.id}
-                    className="p-3 bg-background/50 rounded-lg border border-secondary/30"
-                  >
+                onlineUsers.map((u) => (
+                  <div key={u.id} className="p-3 bg-black/20 rounded-xl border border-white/[0.05] hover:bg-white/[0.05] transition-colors">
                     <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold">{p.username}</span>
-                        {p.isOnline ? (
-                          <span
-                            className="w-2 h-2 rounded-full bg-green-500"
-                            title="Online"
-                          ></span>
-                        ) : (
-                          <span
-                            className="w-2 h-2 rounded-full bg-gray-600"
-                            title="Offline"
-                          ></span>
-                        )}
+                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div>
+                        <span className="font-bold text-sm text-white/90">{u.username}</span>
                       </div>
-                      <span
-                        className={`text-xs font-bold ${getTrustColor(p.trustScore)}`}
-                      >
-                        {p.trustScore}% Trust
+                      <span className="text-xs font-bold text-white/50">
+                        {u.trustScore}%
                       </span>
                     </div>
-                    <div className="text-xs text-gray-400 mb-3">
-                      {p.rank} • {p.position}
-                    </div>
-
-                    {user && user.id !== p.id && (
-                      <div className="flex gap-2">
-                        <button className="flex-1 py-1 bg-secondary/50 hover:bg-secondary rounded text-xs border border-gray-700 transition-colors flex items-center justify-center gap-1">
-                          <Send className="w-3 h-3" /> Урих
-                        </button>
-                        <button
-                          onClick={() => handleReview(p.id, true)}
-                          className="px-2 py-1 bg-green-900/30 hover:bg-green-800 text-green-400 rounded text-xs border border-green-900 transition-colors"
-                        >
-                          <ThumbsUp className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleReview(p.id, false)}
-                          className="px-2 py-1 bg-red-900/30 hover:bg-red-800 text-red-400 rounded text-xs border border-red-900 transition-colors"
-                        >
-                          <ThumbsDown className="w-3 h-3" />
-                        </button>
+                    <div className="flex justify-between items-end mt-2">
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">
+                        {u.rank}
                       </div>
-                    )}
+                      <button 
+                        onClick={() => handleInvite(u.id)}
+                        className="px-2.5 py-1 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-lg text-xs transition-colors flex items-center gap-1"
+                      >
+                        <Send className="w-3 h-3" /> Урих
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
             </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
+          </motion.div>
 
-function FeatureCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="bg-secondary/30 border border-secondary p-8 rounded-2xl flex flex-col items-center text-center hover:bg-secondary/50 transition-colors">
-      <div className="mb-6 p-4 bg-background rounded-full shadow-inner">
-        {icon}
+          {/* Widget 2: Recent Lobbies */}
+          <motion.div variants={itemVars} className="flex flex-col bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl p-5 shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-primary/20"></div>
+            
+            <div className="flex justify-between items-center mb-4 relative z-10">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+                <Swords className="w-4 h-4 text-primary" /> Лоббинууд
+              </h2>
+              <a href="/lobbies" className="text-xs font-bold text-primary hover:text-primary-hover flex items-center">Бүгд <ChevronRight className="w-3 h-3"/></a>
+            </div>
+            
+            <div className="space-y-2 relative z-10">
+              {lobbies.length === 0 ? (
+                <p className="text-white/40 text-sm text-center py-2">Лобби алга байна.</p>
+              ) : (
+                lobbies.slice(0, 3).map((lobby) => (
+                  <div key={lobby.id} className="flex items-center justify-between p-2.5 bg-black/20 rounded-xl border border-white/[0.05] hover:bg-white/[0.05] transition-colors">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <h3 className="font-bold text-xs text-white/90 truncate">{lobby.lobbyName}</h3>
+                      <div className="text-[10px] text-white/40 mt-0.5">
+                        {lobby.stakeAmount > 0 ? <span className="text-green-400">₮{lobby.stakeAmount}</span> : "Энгийн"}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] flex items-center gap-1 text-white/50 bg-white/5 px-1.5 py-0.5 rounded">
+                        <Users className="w-3 h-3" /> {lobby.players.length}/10
+                      </span>
+                      <a href={`/lobbies?join=${lobby.id}`} className="w-6 h-6 flex items-center justify-center bg-primary/20 hover:bg-primary text-primary hover:text-white rounded-lg transition-colors">
+                        <ChevronRight className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+
+          {/* Widget 3: Leaderboard */}
+          <motion.div variants={itemVars} className="flex flex-col bg-white/[0.02] backdrop-blur-xl border border-white/[0.05] rounded-3xl p-5 shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-yellow-500/20"></div>
+            
+            <div className="flex justify-between items-center mb-4 relative z-10">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-white">
+                <Trophy className="w-4 h-4 text-yellow-500" /> Шилдэг 
+              </h2>
+              <a href="/leaderboard" className="text-xs font-bold text-yellow-500 hover:text-yellow-400 flex items-center">Бүгд <ChevronRight className="w-3 h-3"/></a>
+            </div>
+
+            <div className="space-y-2 relative z-10">
+              {leaderboard.length === 0 ? (
+                <p className="text-white/40 text-sm text-center py-2">Мэдээлэл алга байна.</p>
+              ) : (
+                leaderboard.slice(0, 3).map((u, i) => (
+                  <div key={u.id} className="flex items-center gap-3 p-2 bg-black/20 rounded-xl border border-white/[0.05] hover:bg-white/[0.05] transition-colors">
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                      i === 0 ? "bg-gradient-to-br from-yellow-300 to-yellow-600 text-black shadow-[0_0_10px_rgba(234,179,8,0.3)]" :
+                      i === 1 ? "bg-gradient-to-br from-gray-300 to-gray-500 text-black" :
+                      i === 2 ? "bg-gradient-to-br from-amber-600 to-amber-800 text-white" :
+                      "bg-white/10 text-white/50"
+                    }`}>
+                      #{i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-xs text-white/90 truncate">{u.username}</div>
+                    </div>
+                    <div className="text-xs font-bold text-green-400">
+                      {u.wins} <span className="text-[10px] text-white/30 font-normal">W</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+
+        </motion.div>
       </div>
-      <h3 className="text-xl font-bold mb-3">{title}</h3>
-      <p className="text-gray-400 leading-relaxed">{description}</p>
     </div>
   );
 }

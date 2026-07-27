@@ -1,8 +1,76 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Swords, Plus } from "lucide-react";
+import { Users, Swords, Plus, ArrowRightLeft, LogOut, Copy, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
+
+function LobbyChat({ matchId, user }: { matchId: string, user: any }) {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [input, setInput] = useState("");
+  const chatRef = useRef<HTMLDivElement>(null);
+
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch(`/api/lobbies/chat?matchId=${matchId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    setTimeout(() => fetchMessages(), 0);
+    const int = setInterval(fetchMessages, 3000);
+    return () => clearInterval(int);
+  }, [matchId]);
+
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    try {
+      const res = await fetch("/api/lobbies/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId, content: input })
+      });
+      if (res.ok) {
+        setInput("");
+        fetchMessages();
+      }
+    } catch (e) {}
+  };
+
+  return (
+    <div className="mt-4 border border-secondary/50 rounded-lg overflow-hidden flex flex-col bg-background/50 h-64">
+      <div className="bg-secondary/40 px-4 py-2 border-b border-secondary/50 text-xs font-bold text-gray-400 flex items-center gap-2">
+        <MessageSquare className="w-4 h-4"/> Лобби Чат
+      </div>
+      <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.length === 0 && <div className="text-center text-xs text-gray-500 mt-10">Одоогоор чат алга байна</div>}
+        {messages.map(m => (
+          <div key={m.id} className={`text-sm flex flex-col ${m.user.username === user.username ? "items-end" : "items-start"}`}>
+            <span className="text-[10px] text-gray-500 mb-1">{m.user.username}</span>
+            <span className={`inline-block px-3 py-2 rounded-lg ${m.user.username === user.username ? "bg-primary text-white" : "bg-secondary text-gray-200"}`}>
+              {m.content}
+            </span>
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleSend} className="flex border-t border-secondary/50">
+        <input type="text" value={input} onChange={e => setInput(e.target.value)} className="flex-1 bg-transparent px-4 py-3 text-sm focus:outline-none" placeholder="Энд бичнэ үү..." />
+        <button type="submit" className="px-6 bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors">Илгээх</button>
+      </form>
+    </div>
+  );
+}
 
 export default function LobbiesPage() {
   const router = useRouter();
@@ -15,6 +83,10 @@ export default function LobbiesPage() {
   useEffect(() => {
     fetch("/api/user").then(res => res.json()).then(data => setUser(data.user)).catch(() => {});
     fetchLobbies();
+
+    // Auto-refresh lobbies every 5 seconds
+    const interval = setInterval(fetchLobbies, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   async function fetchLobbies() {
@@ -29,7 +101,7 @@ export default function LobbiesPage() {
     }
   };
 
-  const handleJoinLobby = async (matchId: string) => {
+  const handleJoinLobby = async (matchId: string, team: string) => {
     if (!user) {
       router.push("/login");
       return;
@@ -38,14 +110,14 @@ export default function LobbiesPage() {
       const res = await fetch("/api/lobbies/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId }),
+        body: JSON.stringify({ matchId, team }),
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error);
+        setError(data.error);
+        setTimeout(() => setError(""), 3000);
       } else {
         fetchLobbies();
-        // refresh user balance
         fetch("/api/user").then(r => r.json()).then(d => setUser(d.user)).catch(()=>{});
       }
     } catch (e) {
@@ -53,26 +125,91 @@ export default function LobbiesPage() {
     }
   };
 
-  const handleDeleteLobby = async (matchId: string) => {
-    if (!confirm("Энэ лоббиг устгах уу? Орсон хүмүүсийн мөнгө буцаагдах болно.")) return;
+  const handleSwitchTeam = async (matchId: string, team: string) => {
     try {
-      const res = await fetch("/api/lobbies/delete", {
-        method: "DELETE",
+      const res = await fetch("/api/lobbies/switch", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId }),
+        body: JSON.stringify({ matchId, team }),
       });
-      if (res.ok) {
-        fetchLobbies();
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error);
+        setTimeout(() => setError(""), 3000);
       } else {
-        const data = await res.json();
-        alert(data.error);
+        fetchLobbies();
       }
     } catch (e) {
       console.error(e);
     }
   };
 
-  if (loading) return <div className="flex-1 flex justify-center items-center">Уншиж байна...</div>;
+  const handleLeaveLobby = (matchId: string) => {
+    toast("Энэ лоббиноос гарах уу?", {
+      description: "Бооцооны мөнгө буцаагдах болно.",
+      action: {
+        label: "Гарах",
+        onClick: async () => {
+          try {
+            const res = await fetch("/api/lobbies/leave", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ matchId }),
+            });
+            if (res.ok) {
+              toast.success("Лоббиноос гарлаа");
+              fetchLobbies();
+              fetch("/api/user").then(r => r.json()).then(d => setUser(d.user)).catch(()=>{});
+            } else {
+              const data = await res.json();
+              setError(data.error);
+              toast.error(data.error);
+              setTimeout(() => setError(""), 3000);
+            }
+          } catch (e) {
+            console.error(e);
+            toast.error("Алдаа гарлаа");
+          }
+        }
+      },
+      cancel: { label: "Цуцлах", onClick: () => {} }
+    });
+  };
+
+  const handleDeleteLobby = async (matchId: string) => {
+    toast("Админ устгал хийх үү?", {
+      description: "Энэ лоббиг бүрмөсөн устгах болно.",
+      action: {
+        label: "Устгах",
+        onClick: async () => {
+          try {
+            const res = await fetch(`/api/lobbies/delete`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ matchId }),
+            });
+            if (res.ok) {
+              toast.success("Лобби устгагдлаа");
+              fetchLobbies();
+            } else {
+              const data = await res.json();
+              toast.error(data.error || "Алдаа гарлаа");
+            }
+          } catch (e) {
+            console.error(e);
+            toast.error("Алдаа гарлаа");
+          }
+        }
+      },
+      cancel: { label: "Цуцлах", onClick: () => {} }
+    });
+  };
+
+  if (loading) return (
+    <div className="flex-1 flex justify-center items-center">
+      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 
   const filteredLobbies = lobbies.filter(lobby => {
     if (filter === "FREE") return lobby.stakeAmount === 0;
@@ -100,9 +237,9 @@ export default function LobbiesPage() {
         <button onClick={() => setFilter("BET")} className={`px-4 py-2 font-medium text-sm ${filter === "BET" ? "text-primary border-b-2 border-primary" : "text-gray-400 hover:text-white"}`}>Бооцоотой Лобби</button>
       </div>
 
-      {error && <div className="mb-6 p-4 bg-primary/20 text-primary-hover rounded-lg text-sm">{error}</div>}
+      {error && <div className="mb-6 p-4 bg-red-900/40 text-red-400 rounded-lg text-sm border border-red-900 text-center">{error}</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {filteredLobbies.length === 0 ? (
           <div className="col-span-full py-12 text-center text-gray-400 border border-secondary/50 rounded-xl bg-secondary/10">
             Одоогоор хүлээгдэж буй лобби алга байна. Та эхнийхийг нь үүсгэнэ үү!
@@ -110,52 +247,137 @@ export default function LobbiesPage() {
         ) : (
           filteredLobbies.map(lobby => {
             const isJoined = lobby.players.some((p: any) => p.user.username === user?.username);
+            const myPlayer = lobby.players.find((p: any) => p.user.username === user?.username);
             
+            const radiantPlayers = lobby.players.filter((p: any) => p.team === "RADIANT");
+            const direPlayers = lobby.players.filter((p: any) => p.team === "DIRE");
+
             return (
-              <div key={lobby.id} className="bg-secondary/20 border border-secondary/50 rounded-xl p-6 hover:bg-secondary/30 transition-colors">
-                <div className="flex justify-between items-start mb-4">
+              <div key={lobby.id} className="bg-secondary/20 border border-secondary/50 rounded-2xl p-6 hover:bg-secondary/30 transition-colors shadow-lg">
+                
+                {/* Header */}
+                <div className="flex justify-between items-start mb-6 border-b border-secondary/50 pb-4">
                   <div>
-                    <h3 className="text-lg font-bold">{lobby.lobbyName}</h3>
-                    <p className="text-sm text-gray-400 flex items-center gap-1 mt-1">
-                      <Swords className="w-4 h-4" /> Бооцоо: <span className={lobby.stakeAmount > 0 ? "text-green-400 font-bold" : "text-white"}>{lobby.stakeAmount > 0 ? `₮${lobby.stakeAmount.toLocaleString()}` : "Энгийн"}</span>
+                    <h3 className="text-xl font-bold text-white">{lobby.lobbyName}</h3>
+                    <p className="text-sm text-gray-400 flex items-center gap-2 mt-2">
+                      <Swords className="w-4 h-4" /> 
+                      Бооцоо: <span className={lobby.stakeAmount > 0 ? "text-yellow-400 font-bold" : "text-white"}>
+                        {lobby.stakeAmount > 0 ? `₮${lobby.stakeAmount.toLocaleString()}` : "Энгийн (Үнэгүй)"}
+                      </span>
                     </p>
                   </div>
-                  <div className="bg-background/80 px-3 py-1 rounded-full text-xs font-medium border border-secondary flex items-center gap-1">
-                    <Users className="w-3 h-3" /> {lobby.players.length} / 10
+                  <div className="bg-background/80 px-4 py-2 rounded-lg text-sm font-medium border border-secondary flex items-center gap-2">
+                    <Users className="w-4 h-4 text-primary" /> {lobby.players.length} / 10
                   </div>
                 </div>
 
-                <div className="space-y-2 mb-6">
-                  {lobby.players.map((p: any) => (
-                    <div key={p.id} className="flex justify-between items-center text-sm px-2 py-1 bg-background/30 rounded">
-                      <span>{p.user.username}</span>
-                      <span className="text-xs text-gray-400">{p.user.rank}</span>
+                {/* Dota 2 Lobby View */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  
+                  {/* Radiant */}
+                  <div className="bg-green-950/20 border border-green-900/50 rounded-xl overflow-hidden">
+                    <div className="bg-green-900/40 py-2 px-4 border-b border-green-900/50 text-green-400 font-bold text-center text-sm tracking-wider">
+                      RADIANT
                     </div>
-                  ))}
-                  {[...Array(10 - lobby.players.length)].map((_, i) => (
-                    <div key={i} className="flex justify-between items-center text-sm px-2 py-1 bg-background/10 rounded border border-dashed border-secondary/50 text-gray-600">
-                      <span>Хоосон</span>
+                    <div className="p-3 space-y-2">
+                      {radiantPlayers.map((p: any) => (
+                        <div key={p.id} className={`flex justify-between items-center text-sm px-3 py-2 rounded border ${p.user.username === user?.username ? "bg-green-900/40 border-green-500 text-white font-bold" : "bg-background/50 border-transparent text-gray-300"}`}>
+                          <span>{p.user.username}</span>
+                          <span className="text-xs opacity-70">{p.user.rank}</span>
+                        </div>
+                      ))}
+                      {[...Array(5 - radiantPlayers.length)].map((_, i) => (
+                        <div key={i} className="flex justify-center items-center text-sm px-3 py-2 bg-background/20 rounded border border-dashed border-green-900/30 text-green-900/50">
+                          Хоосон
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                    
+                    {/* Actions */}
+                    <div className="p-3 pt-0">
+                      {isJoined ? (
+                        myPlayer?.team !== "RADIANT" ? (
+                          <button onClick={() => handleSwitchTeam(lobby.id, "RADIANT")} disabled={radiantPlayers.length >= 5} className="w-full py-2 text-xs font-bold text-green-400 border border-green-900/50 hover:bg-green-900/30 rounded flex justify-center items-center gap-1 disabled:opacity-50">
+                            <ArrowRightLeft className="w-3 h-3"/> Энэ баг руу орох
+                          </button>
+                        ) : (
+                           <div className="w-full py-2 text-xs font-bold text-green-500 text-center">Та энэ багт байна</div>
+                        )
+                      ) : (
+                        <button onClick={() => handleJoinLobby(lobby.id, "RADIANT")} disabled={radiantPlayers.length >= 5} className="w-full py-2 text-xs font-bold bg-green-900/60 hover:bg-green-800 text-green-100 rounded disabled:opacity-50 transition-colors">
+                          Radiant-д орох
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dire */}
+                  <div className="bg-red-950/20 border border-red-900/50 rounded-xl overflow-hidden">
+                    <div className="bg-red-900/40 py-2 px-4 border-b border-red-900/50 text-red-400 font-bold text-center text-sm tracking-wider">
+                      DIRE
+                    </div>
+                    <div className="p-3 space-y-2">
+                      {direPlayers.map((p: any) => (
+                        <div key={p.id} className={`flex justify-between items-center text-sm px-3 py-2 rounded border ${p.user.username === user?.username ? "bg-red-900/40 border-red-500 text-white font-bold" : "bg-background/50 border-transparent text-gray-300"}`}>
+                          <span>{p.user.username}</span>
+                          <span className="text-xs opacity-70">{p.user.rank}</span>
+                        </div>
+                      ))}
+                      {[...Array(5 - direPlayers.length)].map((_, i) => (
+                        <div key={i} className="flex justify-center items-center text-sm px-3 py-2 bg-background/20 rounded border border-dashed border-red-900/30 text-red-900/50">
+                          Хоосон
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="p-3 pt-0">
+                      {isJoined ? (
+                        myPlayer?.team !== "DIRE" ? (
+                          <button onClick={() => handleSwitchTeam(lobby.id, "DIRE")} disabled={direPlayers.length >= 5} className="w-full py-2 text-xs font-bold text-red-400 border border-red-900/50 hover:bg-red-900/30 rounded flex justify-center items-center gap-1 disabled:opacity-50">
+                            <ArrowRightLeft className="w-3 h-3"/> Энэ баг руу орох
+                          </button>
+                        ) : (
+                           <div className="w-full py-2 text-xs font-bold text-red-500 text-center">Та энэ багт байна</div>
+                        )
+                      ) : (
+                        <button onClick={() => handleJoinLobby(lobby.id, "DIRE")} disabled={direPlayers.length >= 5} className="w-full py-2 text-xs font-bold bg-red-900/60 hover:bg-red-800 text-red-100 rounded disabled:opacity-50 transition-colors">
+                          Dire-д орох
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {isJoined ? (
-                  <div className="w-full text-center py-2 bg-green-900/30 text-green-400 rounded border border-green-800/50 text-sm font-medium">
-                    Нууц үг: <span className="font-bold tracking-widest">{lobby.lobbyPassword}</span>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => handleJoinLobby(lobby.id)}
-                    disabled={lobby.players.length >= 10}
-                    className="w-full py-2 bg-accent hover:bg-accent/80 text-white rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {lobby.players.length >= 10 ? "Дүүрсэн" : "Нэгдэх"}
-                  </button>
+                {/* Footer / Password / Leave */}
+                {isJoined && (
+                  <>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/lobbies?join=${lobby.id}`);
+                          toast.success("Урих линк хуулагдлаа! Найз руугаа явуулаарай.");
+                        }}
+                        className="flex-1 text-center py-3 bg-secondary hover:bg-secondary/80 rounded-lg border border-secondary text-sm font-medium transition-colors flex items-center justify-center gap-2 text-gray-300"
+                      >
+                        <Copy className="w-4 h-4"/> Найзаа урих (Линк хуулах)
+                      </button>
+                      <button onClick={() => handleLeaveLobby(lobby.id)} className="px-6 py-3 bg-red-900/40 hover:bg-red-800 border border-red-900/50 text-red-300 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                        <LogOut className="w-4 h-4"/> Гарах
+                      </button>
+                    </div>
+                    
+                    <div className="mt-4 text-center py-2 bg-primary/20 text-primary-hover rounded-lg border border-primary/30 text-sm font-medium">
+                      Лобби нууц үг: <span className="font-bold tracking-widest">{lobby.lobbyPassword}</span>
+                    </div>
+
+                    <LobbyChat matchId={lobby.id} user={user} />
+                  </>
                 )}
                 
                 {user?.role === "ADMIN" && (
-                  <button onClick={() => handleDeleteLobby(lobby.id)} className="w-full mt-2 py-2 bg-red-900/40 hover:bg-red-800 text-red-300 rounded text-xs transition-colors">
-                    Админ: Лобби устгах
+                  <button onClick={() => handleDeleteLobby(lobby.id)} className="w-full mt-4 py-2 bg-background/50 hover:bg-background text-red-400 border border-red-900/30 rounded text-xs transition-colors font-medium">
+                    Админ: Энэ лоббиг устгах
                   </button>
                 )}
               </div>

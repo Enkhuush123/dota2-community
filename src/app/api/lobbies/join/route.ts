@@ -10,7 +10,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Нэвтрээгүй байна" }, { status: 401 });
     }
 
-    const { matchId } = await req.json();
+    const { matchId, team } = await req.json();
+
+    if (team && !["RADIANT", "DIRE"].includes(team)) {
+      return NextResponse.json({ error: "Баг буруу байна" }, { status: 400 });
+    }
 
     if (!matchId) {
       return NextResponse.json({ error: "Лобби олдсонгүй" }, { status: 400 });
@@ -33,6 +37,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Та энэ лоббинд орсон байна" }, { status: 400 });
     }
 
+    let assignedTeam = team;
+    if (!assignedTeam) {
+      const radiantCount = match.players.filter((p: any) => p.team === "RADIANT").length;
+      const direCount = match.players.filter((p: any) => p.team === "DIRE").length;
+      assignedTeam = radiantCount <= direCount ? "RADIANT" : "DIRE";
+    }
+
+    const teamCount = match.players.filter((p: any) => p.team === assignedTeam).length;
+    if (teamCount >= 5) {
+      return NextResponse.json({ error: "Энэ баг дүүрсэн байна" }, { status: 400 });
+    }
+
     const user = await prisma.user.findUnique({ where: { id: session.userId } });
     if (!user || user.balance < match.stakeAmount) {
       return NextResponse.json({ error: "Үлдэгдэл хүрэлцэхгүй байна" }, { status: 400 });
@@ -42,6 +58,7 @@ export async function POST(req: Request) {
       data: {
         matchId,
         userId: session.userId,
+        team: assignedTeam
       }
     });
 

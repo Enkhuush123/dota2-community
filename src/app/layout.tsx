@@ -14,6 +14,8 @@ export const metadata: Metadata = {
 
 import { getSession } from "@/lib/auth";
 import { Ping } from "@/components/Ping";
+import { InvitePoller } from "@/components/InvitePoller";
+import { Toaster } from 'sonner';
 
 export default async function RootLayout({
   children,
@@ -25,13 +27,19 @@ export default async function RootLayout({
   return (
     <html lang="mn">
       <body className={`${inter.variable} antialiased min-h-screen bg-background text-foreground flex flex-col`}>
+        <Toaster richColors position="top-center" theme="dark" />
         <Ping />
+        <InvitePoller />
         <nav className="border-b border-secondary/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
               DOTA 2 MONGOLIA
             </a>
             <div className="flex gap-4">
+              <a href="/leaderboard" className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors">Шилдэг</a>
+              <a href="/online" className="px-4 py-2 text-sm font-medium text-green-400 hover:text-green-300 transition-colors flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Онлайн
+              </a>
               <a href="/lobbies" className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors">Лоббинууд</a>
               {session ? (
                 <a href="/dashboard" className="px-4 py-2 text-sm font-medium bg-secondary hover:bg-secondary/80 text-white rounded-md transition-colors">Профайл / Хэтэвч</a>

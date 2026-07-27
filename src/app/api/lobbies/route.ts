@@ -30,10 +30,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Нэвтрээгүй байна" }, { status: 401 });
     }
 
-    const { stakeAmount } = await req.json();
+    const { stakeAmount, team } = await req.json();
 
     if (stakeAmount === undefined || stakeAmount < 0) {
       return NextResponse.json({ error: "Бооцооны дүн буруу байна" }, { status: 400 });
+    }
+    
+    if (team && !["RADIANT", "DIRE"].includes(team)) {
+      return NextResponse.json({ error: "Баг буруу байна" }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { id: session.userId } });
@@ -52,7 +56,8 @@ export async function POST(req: Request) {
         stakeAmount,
         players: {
           create: {
-            userId: session.userId
+            userId: session.userId,
+            team: team || "RADIANT"
           }
         }
       }

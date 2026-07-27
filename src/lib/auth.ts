@@ -10,7 +10,7 @@ export function signJwt(payload: object) {
 export function verifyJwt(token: string) {
   try {
     return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
+  } catch {
     return null;
   }
 }

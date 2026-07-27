@@ -21,6 +21,9 @@ export async function GET() {
         balance: true,
         role: true,
         trustScore: true,
+        mmr: true,
+        winStreak: true,
+        wins: true,
         _count: {
           select: {
             matches: {
@@ -41,7 +44,17 @@ export async function GET() {
           orderBy: { joinedAt: "desc" },
           take: 10,
           include: {
-            match: true,
+            match: {
+              include: {
+                players: {
+                  include: {
+                    user: {
+                      select: { id: true, username: true, rank: true, position: true }
+                    }
+                  }
+                }
+              }
+            }
           },
         },
       },
