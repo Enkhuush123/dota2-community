@@ -114,7 +114,7 @@ export default function OnlinePlayersPage() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e] animate-pulse"></div>
-                  <span className="font-bold text-lg">{user.username}</span>
+                  <a href={`/profile/${user.id}`} className="font-bold text-lg hover:text-primary transition-colors cursor-pointer">{user.username}</a>
                   {user.winStreak >= 3 && (
                     <span className="flex items-center gap-1 text-xs font-bold text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20" title="Дараалж хожсон">
                       🔥 {user.winStreak}

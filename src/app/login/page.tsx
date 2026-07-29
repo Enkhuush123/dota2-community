@@ -30,8 +30,7 @@ export default function LoginPage() {
       }
 
       // Success, redirect to dashboard or home
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err.message);
     } finally {

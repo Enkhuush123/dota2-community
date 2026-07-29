@@ -311,9 +311,9 @@ export default function Home() {
                   </div>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {match.players.map((p: any, i: number) => (
-                      <span key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] text-white/70">
+                      <a href={`/profile/${p.user.id}`} key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] text-white/70 hover:text-primary transition-colors cursor-pointer">
                         {p.user.username}
-                      </span>
+                      </a>
                     ))}
                   </div>
                 </div>

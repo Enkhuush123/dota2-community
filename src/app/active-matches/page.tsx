@@ -95,9 +95,9 @@ export default async function ActiveMatchesPage() {
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {match.players.filter(p => p.team === "RADIANT").map((p, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded text-[10px]">
+                          <a href={`/profile/${p.user.id}`} key={i} className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded text-[10px] hover:bg-green-500/20 transition-colors cursor-pointer">
                             {p.user.username}
-                          </span>
+                          </a>
                         ))}
                         {match.players.filter(p => p.team === "RADIANT").length === 0 && (
                           <div className="text-xs text-white/30 italic">Тоглогч ороогүй</div>
@@ -113,9 +113,9 @@ export default async function ActiveMatchesPage() {
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {match.players.filter(p => p.team === "DIRE").map((p, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded text-[10px]">
+                          <a href={`/profile/${p.user.id}`} key={i} className="px-2 py-0.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded text-[10px] hover:bg-red-500/20 transition-colors cursor-pointer">
                             {p.user.username}
-                          </span>
+                          </a>
                         ))}
                         {match.players.filter(p => p.team === "DIRE").length === 0 && (
                           <div className="text-xs text-white/30 italic">Тоглогч ороогүй</div>

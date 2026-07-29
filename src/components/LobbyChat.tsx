@@ -88,7 +88,7 @@ export function LobbyChat({ matchId }: { matchId: string }) {
               />
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-bold text-sm text-white/90">{msg.user.username}</span>
+                  <a href={`/profile/${msg.userId}`} className="font-bold text-sm text-white/90 hover:text-primary transition-colors cursor-pointer">{msg.user.username}</a>
                   <span className="text-[10px] text-white/40">{format(new Date(msg.createdAt), 'HH:mm')}</span>
                 </div>
                 <div className="text-sm text-white/70 mt-0.5 break-words">

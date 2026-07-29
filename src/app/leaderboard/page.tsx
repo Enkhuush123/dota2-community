@@ -98,7 +98,7 @@ export default function LeaderboardPage() {
                           {user.username.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-bold text-white text-lg flex items-center gap-2">
+                          <a href={`/profile/${user.id}`} className="font-bold text-white text-lg flex items-center gap-2 hover:text-primary transition-colors cursor-pointer">
                             {user.username}
                             {index === 0 && <span title="1-р байр"><Medal className="w-4 h-4 text-yellow-500" /></span>}
                             {user.winStreak >= 3 && (

@@ -216,7 +216,7 @@ export default function LobbiesPage() {
                     <div className="p-3 space-y-2">
                       {radiantPlayers.map((p: any) => (
                         <div key={p.id} className={`flex justify-between items-center text-sm px-3 py-2 rounded border ${p.user.username === user?.username ? "bg-green-900/40 border-green-500 text-white font-bold" : "bg-background/50 border-transparent text-gray-300"}`}>
-                          <span>{p.user.username}</span>
+                          <a href={`/profile/${p.user.id}`} className="hover:text-primary transition-colors cursor-pointer">{p.user.username}</a>
                           <span className="text-xs opacity-70">{p.user.rank}</span>
                         </div>
                       ))}
@@ -253,7 +253,7 @@ export default function LobbiesPage() {
                     <div className="p-3 space-y-2">
                       {direPlayers.map((p: any) => (
                         <div key={p.id} className={`flex justify-between items-center text-sm px-3 py-2 rounded border ${p.user.username === user?.username ? "bg-red-900/40 border-red-500 text-white font-bold" : "bg-background/50 border-transparent text-gray-300"}`}>
-                          <span>{p.user.username}</span>
+                          <a href={`/profile/${p.user.id}`} className="hover:text-primary transition-colors cursor-pointer">{p.user.username}</a>
                           <span className="text-xs opacity-70">{p.user.rank}</span>
                         </div>
                       ))}
