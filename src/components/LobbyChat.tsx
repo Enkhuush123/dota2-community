@@ -10,7 +10,7 @@ export function LobbyChat({ matchId }: { matchId: string }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchMessages = async () => {
     try {
@@ -31,7 +31,9 @@ export function LobbyChat({ matchId }: { matchId: string }) {
   }, [matchId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -71,7 +73,7 @@ export function LobbyChat({ matchId }: { matchId: string }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 relative z-10">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 relative z-10 scroll-smooth">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-white/30 text-sm">
             <MessageSquare className="w-8 h-8 mb-2 opacity-50" />
@@ -98,7 +100,6 @@ export function LobbyChat({ matchId }: { matchId: string }) {
             </div>
           ))
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}

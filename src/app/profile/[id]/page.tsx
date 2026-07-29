@@ -28,17 +28,26 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   let recentMatches = [];
   let dotaWl = null;
 
+  let heroes: Record<number, string> = {};
+
   if (user.dota2Id) {
     try {
-      const [resPlayer, resMatches, resWl] = await Promise.all([
+      const [resPlayer, resMatches, resWl, resHeroes] = await Promise.all([
         fetch(`https://api.opendota.com/api/players/${user.dota2Id}`, { next: { revalidate: 3600 } }),
         fetch(`https://api.opendota.com/api/players/${user.dota2Id}/recentMatches`, { next: { revalidate: 3600 } }),
-        fetch(`https://api.opendota.com/api/players/${user.dota2Id}/wl`, { next: { revalidate: 3600 } })
+        fetch(`https://api.opendota.com/api/players/${user.dota2Id}/wl`, { next: { revalidate: 3600 } }),
+        fetch(`https://api.opendota.com/api/heroes`, { next: { revalidate: 86400 } })
       ]);
       
       if (resPlayer.ok) dotaStats = await resPlayer.json();
       if (resMatches.ok) recentMatches = await resMatches.json();
       if (resWl.ok) dotaWl = await resWl.json();
+      if (resHeroes.ok) {
+        const heroesArray = await resHeroes.json();
+        heroesArray.forEach((h: any) => {
+          heroes[h.id] = h.name.replace('npc_dota_hero_', '');
+        });
+      }
     } catch (e) {
       console.error("OpenDota fetch failed");
     }
@@ -172,7 +181,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                     <div key={rm.match_id} className="flex items-center gap-4 p-4 bg-black/40 border border-white/5 rounded-xl hover:bg-black/60 transition-colors">
                       <div className="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden shrink-0">
                         <img 
-                          src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${rm.hero_id}.png`} 
+                          src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${heroes[rm.hero_id] || rm.hero_id}.png`} 
                           alt={`Hero ${rm.hero_id}`} 
                           className="w-full h-full object-cover" 
                         />
