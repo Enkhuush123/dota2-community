@@ -197,7 +197,7 @@ class DotaBot {
       try {
         const match = await prisma.match.findFirst({
           where: { lobbyName: lobby.game_name },
-          include: { players: true }
+          include: { players: { include: { user: true } } }
         });
 
         if (match && (match.gameState !== gameState || match.status !== status)) {
@@ -213,11 +213,8 @@ class DotaBot {
           for (const member of lobby.members) {
             if (member.hero_id && member.hero_id > 0) {
               const steamId32 = member.id ? member.id.toString() : "";
-              // We need to find the user with this steamId32 in dota2Id (assuming dota2Id is saved as SteamID32 or SteamID64)
-              // MatchPlayer has userId, let's just find the player via user relation
               for (const player of match.players) {
-                // Find user for this player
-                const user = await prisma.user.findUnique({ where: { id: player.userId } });
+                const user = player.user;
                 if (user && user.dota2Id && (user.dota2Id === steamId32 || user.dota2Id === member.id)) {
                   // Only update if heroId changed
                   if (player.heroId !== member.hero_id) {

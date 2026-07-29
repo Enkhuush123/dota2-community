@@ -4,9 +4,10 @@ import ClientActiveMatch from "./ClientActiveMatch";
 
 export const dynamic = "force-dynamic";
 
-export default async function ActiveMatchPage({ params }: { params: { id: string } }) {
+export default async function ActiveMatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const match = await prisma.match.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       players: {
         include: { user: true }

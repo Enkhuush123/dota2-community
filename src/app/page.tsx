@@ -302,17 +302,12 @@ export default function Home() {
                   <div className="text-sm font-bold text-green-400 bg-green-500/10 px-3 py-1.5 rounded-lg border border-green-500/20">
                     {match.stakeAmount > 0 ? `₮${match.stakeAmount}` : "Үнэгүй"}
                   </div>
-                  <div className="flex -space-x-2">
-                    {match.players.slice(0, 4).map((p: any, i: number) => (
-                      <div key={i} className="w-8 h-8 rounded-full bg-gray-800 border-2 border-[#030712] flex items-center justify-center text-xs font-bold text-white">
-                        {p.user.username.charAt(0).toUpperCase()}
-                      </div>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {match.players.map((p: any, i: number) => (
+                      <span key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] text-white/70">
+                        {p.user.username}
+                      </span>
                     ))}
-                    {match.players.length > 4 && (
-                      <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-[#030712] flex items-center justify-center text-[10px] font-bold text-white">
-                        +{match.players.length - 4}
-                      </div>
-                    )}
                   </div>
                 </div>
 

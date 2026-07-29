@@ -93,11 +93,11 @@ export default async function ActiveMatchesPage() {
                         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div>
                         <span className="text-xs font-bold text-green-500 uppercase">Radiant</span>
                       </div>
-                      <div className="flex -space-x-2">
+                      <div className="flex flex-wrap gap-1">
                         {match.players.filter(p => p.team === "RADIANT").map((p, i) => (
-                          <div key={i} className="w-8 h-8 rounded-full bg-gray-800 border-2 border-[#030712] flex items-center justify-center text-xs font-bold text-white z-10 hover:z-20 transition-transform hover:scale-110" title={p.user.username}>
-                            {p.user.username.charAt(0).toUpperCase()}
-                          </div>
+                          <span key={i} className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded text-[10px]">
+                            {p.user.username}
+                          </span>
                         ))}
                         {match.players.filter(p => p.team === "RADIANT").length === 0 && (
                           <div className="text-xs text-white/30 italic">Тоглогч ороогүй</div>
@@ -111,11 +111,11 @@ export default async function ActiveMatchesPage() {
                         <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]"></div>
                         <span className="text-xs font-bold text-red-500 uppercase">Dire</span>
                       </div>
-                      <div className="flex -space-x-2">
+                      <div className="flex flex-wrap gap-1">
                         {match.players.filter(p => p.team === "DIRE").map((p, i) => (
-                          <div key={i} className="w-8 h-8 rounded-full bg-gray-800 border-2 border-[#030712] flex items-center justify-center text-xs font-bold text-white z-10 hover:z-20 transition-transform hover:scale-110" title={p.user.username}>
-                            {p.user.username.charAt(0).toUpperCase()}
-                          </div>
+                          <span key={i} className="px-2 py-0.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded text-[10px]">
+                            {p.user.username}
+                          </span>
                         ))}
                         {match.players.filter(p => p.team === "DIRE").length === 0 && (
                           <div className="text-xs text-white/30 italic">Тоглогч ороогүй</div>
