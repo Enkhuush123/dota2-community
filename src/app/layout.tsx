@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 import { getSession } from "@/lib/auth";
 import { Ping } from "@/components/Ping";
 import { InvitePoller } from "@/components/InvitePoller";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Toaster } from 'sonner';
 
 export default async function RootLayout({
@@ -25,7 +26,20 @@ export default async function RootLayout({
   const session: any = await getSession();
 
   return (
-    <html lang="mn">
+    <html lang="mn" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('dota-theme') === 'radiant') {
+                  document.documentElement.classList.add('theme-radiant');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} antialiased min-h-screen bg-background text-foreground flex flex-col`}>
         <Toaster richColors position="top-center" theme="dark" />
         <Ping />
@@ -55,6 +69,9 @@ export default async function RootLayout({
                   <a href="/register" className="px-4 py-2 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded-md transition-colors">Бүртгүүлэх</a>
                 </>
               )}
+              <div className="ml-2 pl-2 border-l border-white/10 flex items-center">
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </nav>

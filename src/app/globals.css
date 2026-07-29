@@ -1,18 +1,39 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0f1115;
-  --color-foreground: #e4e4e7;
-  --color-primary: #d43838;
-  --color-primary-hover: #b92b2b;
-  --color-secondary: #2a303c;
-  --color-accent: #3b82f6;
+  --color-background: var(--bg-color);
+  --color-foreground: var(--fg-color);
+  --color-primary: var(--primary-color);
+  --color-primary-hover: var(--primary-hover-color);
+  --color-secondary: var(--secondary-color);
+  --color-accent: var(--accent-color);
   --font-sans: var(--font-inter);
 }
 
 :root {
-  --background: #0f1115;
-  --foreground: #e4e4e7;
+  /* Default: DIRE THEME */
+  --bg-color: #0f1115;
+  --fg-color: #e4e4e7;
+  --primary-color: #d43838;
+  --primary-hover-color: #b92b2b;
+  --secondary-color: #2a303c;
+  --accent-color: #3b82f6;
+  
+  --background: var(--bg-color);
+  --foreground: var(--fg-color);
+}
+
+.theme-radiant {
+  /* RADIANT THEME */
+  --bg-color: #0b1612;
+  --fg-color: #e4e4e7;
+  --primary-color: #10b981;
+  --primary-hover-color: #059669;
+  --secondary-color: #172e25;
+  --accent-color: #fbbf24;
+  
+  --background: var(--bg-color);
+  --foreground: var(--fg-color);
 }
 
 body {
