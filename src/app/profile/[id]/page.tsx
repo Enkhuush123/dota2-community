@@ -5,6 +5,8 @@ import { format } from "date-fns";
 import { Trophy, Swords, Flame, Calendar, Activity, Link as LinkIcon, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -173,7 +175,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                           src={`https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${rm.hero_id}.png`} 
                           alt={`Hero ${rm.hero_id}`} 
                           className="w-full h-full object-cover" 
-                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
