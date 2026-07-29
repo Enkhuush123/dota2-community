@@ -302,8 +302,10 @@ class DotaBot {
         try {
           const BOT_SECRET = process.env.BOT_SECRET_KEY || "fallback_secret_key_123";
           
+          const apiUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3000}`;
+          
           // Send request to our Next.js API to handle MMR and balance distribution
-          const res = await fetch(`http://localhost:${process.env.PORT || 3000}/api/bot/match/complete`, {
+          const res = await fetch(`${apiUrl}/api/bot/match/complete`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
