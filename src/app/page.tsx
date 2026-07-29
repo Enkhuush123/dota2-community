@@ -85,7 +85,7 @@ export default function Home() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] flex flex-col lg:flex-row items-center justify-center overflow-hidden bg-[#030712]">
+    <div className="relative min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center overflow-x-hidden bg-[#030712] pb-12">
       {/* Abstract Background */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[50%] rounded-full bg-primary/20 blur-[120px] animate-pulse"></div>
