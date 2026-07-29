@@ -365,21 +365,20 @@ class DotaBot {
       } else {
         console.log(`[Dota2-${this.username}] Successfully created lobby: ${match.lobbyName}`);
         
-        // Temporarily comment out moving to broadcaster to see if 0 players hides the lobby
-        // this.dota2.joinPracticeLobbyBroadcastChannel(1, () => {
-        console.log(`[Dota2-${this.username}] Staying in default slot to keep lobby visible...`);
-        
-        // Automatically invite all players to the lobby!
-        if (match.players) {
-          match.players.forEach((p: any) => {
-            const steamId = p.user?.steamId || p.steamId;
-            if (steamId) {
-              console.log(`[Dota2-${this.username}] Inviting player ${steamId} to lobby...`);
-              this.dota2.inviteToLobby(steamId);
-            }
-          });
-        }
-        // });
+        this.dota2.joinPracticeLobbyBroadcastChannel(1, () => {
+          console.log(`[Dota2-${this.username}] Moved to broadcaster slot.`);
+          
+          // Automatically invite all players to the lobby!
+          if (match.players) {
+            match.players.forEach((p: any) => {
+              const steamId = p.user?.steamId || p.steamId;
+              if (steamId) {
+                console.log(`[Dota2-${this.username}] Inviting player ${steamId} to lobby...`);
+                this.dota2.inviteToLobby(steamId);
+              }
+            });
+          }
+        });
 
         await prisma.match.update({
           where: { id: match.id },
