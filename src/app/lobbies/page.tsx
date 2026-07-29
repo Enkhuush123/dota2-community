@@ -4,73 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Swords, Plus, ArrowRightLeft, LogOut, Copy, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-
-function LobbyChat({ matchId, user }: { matchId: string, user: any }) {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [input, setInput] = useState("");
-  const chatRef = useRef<HTMLDivElement>(null);
-
-  const fetchMessages = async () => {
-    try {
-      const res = await fetch(`/api/lobbies/chat?matchId=${matchId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages);
-      }
-    } catch (e) {}
-  };
-
-  useEffect(() => {
-    setTimeout(() => fetchMessages(), 0);
-    const int = setInterval(fetchMessages, 3000);
-    return () => clearInterval(int);
-  }, [matchId]);
-
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    try {
-      const res = await fetch("/api/lobbies/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId, content: input })
-      });
-      if (res.ok) {
-        setInput("");
-        fetchMessages();
-      }
-    } catch (e) {}
-  };
-
-  return (
-    <div className="mt-4 border border-secondary/50 rounded-lg overflow-hidden flex flex-col bg-background/50 h-64">
-      <div className="bg-secondary/40 px-4 py-2 border-b border-secondary/50 text-xs font-bold text-gray-400 flex items-center gap-2">
-        <MessageSquare className="w-4 h-4"/> Лобби Чат
-      </div>
-      <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 && <div className="text-center text-xs text-gray-500 mt-10">Одоогоор чат алга байна</div>}
-        {messages.map(m => (
-          <div key={m.id} className={`text-sm flex flex-col ${m.user.username === user.username ? "items-end" : "items-start"}`}>
-            <span className="text-[10px] text-gray-500 mb-1">{m.user.username}</span>
-            <span className={`inline-block px-3 py-2 rounded-lg ${m.user.username === user.username ? "bg-primary text-white" : "bg-secondary text-gray-200"}`}>
-              {m.content}
-            </span>
-          </div>
-        ))}
-      </div>
-      <form onSubmit={handleSend} className="flex border-t border-secondary/50">
-        <input type="text" value={input} onChange={e => setInput(e.target.value)} className="flex-1 bg-transparent px-4 py-3 text-sm focus:outline-none" placeholder="Энд бичнэ үү..." />
-        <button type="submit" className="px-6 bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors">Илгээх</button>
-      </form>
-    </div>
-  );
-}
+import { LobbyChat } from "@/components/LobbyChat";
 
 export default function LobbiesPage() {
   const router = useRouter();
@@ -371,7 +305,9 @@ export default function LobbiesPage() {
                       Лобби нууц үг: <span className="font-bold tracking-widest">{lobby.lobbyPassword}</span>
                     </div>
 
-                    <LobbyChat matchId={lobby.id} user={user} />
+                    <div className="mt-8">
+                      <LobbyChat matchId={lobby.id} />
+                    </div>
                   </>
                 )}
                 

@@ -13,6 +13,7 @@ import {
   
 } from "lucide-react";
 import { toast } from "sonner";
+import { getRankFromMMR } from "@/lib/ranks";
 
 export default function Home() {
   
@@ -163,15 +164,18 @@ export default function Home() {
                     <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div>
-                        <span className="font-bold text-sm text-white/90">{u.username}</span>
+                        <a href={`/profile/${u.id}`} className="font-bold text-sm text-white/90 hover:text-primary transition-colors cursor-pointer">{u.username}</a>
                       </div>
                       <span className="text-xs font-bold text-white/50">
                         {u.trustScore}%
                       </span>
                     </div>
                     <div className="flex justify-between items-end mt-2">
-                      <div className="text-[10px] text-white/40 uppercase tracking-wider">
-                        {u.rank}
+                      <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded border border-white/5">
+                        <img src={getRankFromMMR(u.mmr || 1000).iconUrl} alt="Rank" className="w-4 h-4 object-contain" />
+                        <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">
+                          {getRankFromMMR(u.mmr || 1000).name}
+                        </span>
                       </div>
                       <button 
                         onClick={() => handleInvite(u.id)}
@@ -249,7 +253,10 @@ export default function Home() {
                       #{i + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-xs text-white/90 truncate">{u.username}</div>
+                      <a href={`/profile/${u.id}`} className="font-bold text-xs text-white/90 truncate flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer">
+                        <img src={getRankFromMMR(u.mmr || 1000).iconUrl} alt="Rank" className="w-3.5 h-3.5 object-contain" />
+                        {u.username}
+                      </a>
                     </div>
                     <div className="text-xs font-bold text-green-400">
                       {u.wins} <span className="text-[10px] text-white/30 font-normal">W</span>

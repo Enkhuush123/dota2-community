@@ -44,6 +44,9 @@ export default async function RootLayout({
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Лобби
               </a>
               <a href="/lobbies" className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors">Бүх Лобби</a>
+              <div className="px-4 py-2 text-sm font-medium text-white/30 cursor-not-allowed flex items-center gap-1">
+                Тэмцээн <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-white/50">Удахгүй</span>
+              </div>
               {session ? (
                 <a href="/dashboard" className="px-4 py-2 text-sm font-medium bg-secondary hover:bg-secondary/80 text-white rounded-md transition-colors">Профайл / Хэтэвч</a>
               ) : (
