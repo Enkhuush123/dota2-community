@@ -106,7 +106,7 @@ export default function LeaderboardPage() {
                                 🔥 {user.winStreak}
                               </span>
                             )}
-                          </div>
+                          </a>
                           <div className="text-sm text-gray-400 flex items-center gap-2">
                             {user.rank} <span className="w-1 h-1 rounded-full bg-gray-600"></span> {user.position}
                           </div>
