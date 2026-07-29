@@ -40,7 +40,10 @@ export default async function RootLayout({
               <a href="/online" className="px-4 py-2 text-sm font-medium text-green-400 hover:text-green-300 transition-colors flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Онлайн
               </a>
-              <a href="/lobbies" className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors">Лоббинууд</a>
+              <a href="/active-matches" className="px-4 py-2 text-sm font-medium hover:text-red-400 transition-colors flex items-center gap-1 text-red-500">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Live Лобби
+              </a>
+              <a href="/lobbies" className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors">Бүх Лобби</a>
               {session ? (
                 <a href="/dashboard" className="px-4 py-2 text-sm font-medium bg-secondary hover:bg-secondary/80 text-white rounded-md transition-colors">Профайл / Хэтэвч</a>
               ) : (

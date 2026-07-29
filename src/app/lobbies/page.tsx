@@ -184,7 +184,7 @@ export default function LobbiesPage() {
         onClick: async () => {
           try {
             const res = await fetch(`/api/lobbies/delete`, {
-              method: "POST",
+              method: "DELETE",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ matchId }),
             });

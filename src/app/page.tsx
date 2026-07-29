@@ -262,6 +262,68 @@ export default function Home() {
 
         </motion.div>
       </div>
+
+      {/* Active Matches Section (Bottom) */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-black text-white flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            </span>
+            Идэвхтэй Лоббинууд
+          </h2>
+          <a href="/active-matches" className="text-sm font-bold text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors">
+            Бүгдийг харах <ChevronRight className="w-4 h-4" />
+          </a>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {lobbies.filter(l => l.status === "LOBBY_CREATED" || l.status === "ONGOING").length === 0 ? (
+            <div className="col-span-full py-12 text-center bg-white/[0.02] border border-white/[0.05] rounded-3xl">
+              <p className="text-white/40">Одоогоор явагдаж буй лобби алга байна.</p>
+            </div>
+          ) : (
+            lobbies.filter(l => l.status === "LOBBY_CREATED" || l.status === "ONGOING").slice(0, 3).map((match) => (
+              <div key={match.id} className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 hover:border-red-500/50 transition-colors relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-red-500/20"></div>
+                
+                <div className="flex justify-between items-start mb-4 relative z-10">
+                  <div>
+                    <h3 className="font-bold text-white text-lg">{match.lobbyName}</h3>
+                    <p className="text-xs text-white/40">Тоглогч: {match.players.length}/10</p>
+                  </div>
+                  <div className="px-2.5 py-1 bg-red-500/10 text-red-400 rounded text-[10px] font-bold uppercase tracking-wider border border-red-500/20">
+                    Live
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mb-4 relative z-10">
+                  <div className="text-sm font-bold text-green-400 bg-green-500/10 px-3 py-1.5 rounded-lg border border-green-500/20">
+                    {match.stakeAmount > 0 ? `₮${match.stakeAmount}` : "Үнэгүй"}
+                  </div>
+                  <div className="flex -space-x-2">
+                    {match.players.slice(0, 4).map((p: any, i: number) => (
+                      <div key={i} className="w-8 h-8 rounded-full bg-gray-800 border-2 border-[#030712] flex items-center justify-center text-xs font-bold text-white">
+                        {p.user.username.charAt(0).toUpperCase()}
+                      </div>
+                    ))}
+                    {match.players.length > 4 && (
+                      <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-[#030712] flex items-center justify-center text-[10px] font-bold text-white">
+                        +{match.players.length - 4}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <a href={`/lobbies?join=${match.id}`} className="block w-full py-2.5 bg-white/5 hover:bg-white/10 text-white text-sm font-bold rounded-xl text-center transition-colors relative z-10">
+                  Орох
+                </a>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }

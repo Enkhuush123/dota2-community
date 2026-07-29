@@ -83,6 +83,7 @@ model Match {
   lobbyName    String
   lobbyPassword String
   status       String        @default("PENDING") // PENDING, ONGOING, COMPLETED, CANCELLED
+  gameState    String?       // Live lobby state (e.g., HERO_SELECTION, IN_PROGRESS)
   stakeAmount  Float         @default(0.0)
   winnerTeam   String?       // RADIANT, DIRE
   botAccountId String?       // ID of the bot handling this match
@@ -99,6 +100,7 @@ model MatchPlayer {
   matchId   String
   userId    String
   team      String?  // RADIANT, DIRE
+  heroId    Int?     // Dota 2 Hero ID selected by the player
   match     Match    @relation(fields: [matchId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
   joinedAt  DateTime @default(now())

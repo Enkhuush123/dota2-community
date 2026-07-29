@@ -181,6 +181,64 @@ class DotaBot {
       console.log(`[Dota2-${this.username}] dota2-user connected! GC is ready.`);
     });
 
+    this.dota2.on("practiceLobbyUpdate", async (lobby: any) => {
+      if (!lobby || !lobby.game_name) return;
+
+      const stateMap: { [key: number]: string } = {
+        1: "WAITING",
+        2: "WAITING",
+        3: "HERO_SELECTION",
+        4: "STRATEGY_TIME",
+        5: "PRE_GAME",
+        6: "IN_PROGRESS",
+        7: "POST_GAME"
+      };
+
+      const gameState = stateMap[lobby.game_state] || "WAITING";
+      const status = (lobby.game_state >= 3 && lobby.game_state <= 6) ? "ONGOING" : "LOBBY_CREATED";
+
+      try {
+        const match = await prisma.match.findFirst({
+          where: { lobbyName: lobby.game_name },
+          include: { players: true }
+        });
+
+        if (match && (match.gameState !== gameState || match.status !== status)) {
+          console.log(`[Dota2-${this.username}] Lobby ${lobby.game_name} state updated to: ${gameState}`);
+          await prisma.match.update({
+            where: { id: match.id },
+            data: { gameState, status }
+          });
+        }
+
+        // Update hero IDs if available
+        if (match && lobby.members && lobby.members.length > 0) {
+          for (const member of lobby.members) {
+            if (member.hero_id && member.hero_id > 0) {
+              const steamId32 = member.id ? member.id.toString() : "";
+              // We need to find the user with this steamId32 in dota2Id (assuming dota2Id is saved as SteamID32 or SteamID64)
+              // MatchPlayer has userId, let's just find the player via user relation
+              for (const player of match.players) {
+                // Find user for this player
+                const user = await prisma.user.findUnique({ where: { id: player.userId } });
+                if (user && user.dota2Id && (user.dota2Id === steamId32 || user.dota2Id === member.id)) {
+                  // Only update if heroId changed
+                  if (player.heroId !== member.hero_id) {
+                    await prisma.matchPlayer.update({
+                      where: { id: player.id },
+                      data: { heroId: member.hero_id }
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // ignore fast polling errors
+      }
+    });
+
     this.client.on('debug', (msg: string) => {
       if (msg.includes('GC')) {
         console.log(`[Steam-${this.username} Debug] ${msg}`);
