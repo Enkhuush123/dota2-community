@@ -8,10 +8,7 @@ import Dota2 from 'dota2';
 import { Dota2User } from 'dota2-user';
 import { prisma } from '../lib/prisma';
 
-// Patch node-dota2 to support visibility, since it's missing in their hardcoded schema
-if (Dota2._lobbyOptions) {
-  Dota2._lobbyOptions.visibility = "number";
-}
+// The visibility patch has been removed to match previously working code.
 import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -349,12 +346,9 @@ class DotaBot {
     const options = {
       game_name: match.lobbyName,
       pass_key: match.lobbyPassword,
-      server_region: 5, // 5 = Singapore
-      game_mode: 1, 
+      server_region: 5, // Singapore
+      game_mode: 2, // Captains Mode (DOTA_GAMEMODE_CM)
       allow_cheats: false,
-      fill_with_bots: false,
-      allow_spectating: true,
-      visibility: 0
     };
 
     this.dota2.createPracticeLobby(options, async (err: any, response: any) => {
