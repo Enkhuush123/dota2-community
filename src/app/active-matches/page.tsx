@@ -20,7 +20,7 @@ export default async function ActiveMatchesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#030712] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center">

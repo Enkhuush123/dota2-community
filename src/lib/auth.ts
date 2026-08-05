@@ -19,5 +19,9 @@ export async function getSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   if (!token) return null;
-  return verifyJwt(token);
+  const decoded = verifyJwt(token);
+  if (typeof decoded === 'object' && decoded !== null) {
+    return decoded as { userId: string; username?: string; role?: string };
+  }
+  return null;
 }

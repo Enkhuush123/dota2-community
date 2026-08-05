@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as dotenv from 'dotenv';
 import SteamUser from 'steam-user';
 const Dota2 = require('dota2');

@@ -153,7 +153,7 @@ class DotaBot {
       this.client.setPersona(SteamUser.EPersonaState.Online, "MNG_BOT_" + this.username);
       
       // Request free license for Dota 2 in case the account is brand new
-      this.client.requestFreeLicense([570], (err, grantedApps, grantedPackages) => {
+      this.client.requestFreeLicense([570], (err: any, grantedApps: any, grantedPackages: any) => {
         if (err) {
           console.log(`[Steam-${this.username}] Error requesting free license:`, err);
         } else if (grantedApps && grantedApps.length > 0) {

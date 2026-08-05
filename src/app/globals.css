@@ -37,7 +37,6 @@
 }
 
 body {
-  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -57,4 +56,27 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #3f4859;
+}
+
+@keyframes heartbeat {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.05;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.2;
+    filter: drop-shadow(0 0 100px var(--primary-color));
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.05;
+  }
+}
+
+.animate-heartbeat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  animation: heartbeat 6s infinite ease-in-out;
 }

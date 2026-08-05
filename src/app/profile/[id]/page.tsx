@@ -28,7 +28,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   let recentMatches = [];
   let dotaWl = null;
 
-  let heroes: Record<number, string> = {};
+  const heroes: Record<number, string> = {};
 
   if (user.dota2Id) {
     try {

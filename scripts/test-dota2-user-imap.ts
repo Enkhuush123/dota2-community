@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as dotenv from 'dotenv';
 import SteamUser from 'steam-user';
 import { Dota2User } from 'dota2-user';

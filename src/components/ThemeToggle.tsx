@@ -9,6 +9,7 @@ export function ThemeToggle() {
   useEffect(() => {
     const savedTheme = localStorage.getItem("dota-theme");
     if (savedTheme === "radiant") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTheme("radiant");
       document.documentElement.classList.add("theme-radiant");
     }

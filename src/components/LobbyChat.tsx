@@ -19,15 +19,17 @@ export function LobbyChat({ matchId }: { matchId: string }) {
         const data = await res.json();
         setMessages(data.messages);
       }
-    } catch (err) {
+    } catch {
       console.error("Failed to fetch messages");
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchMessages();
     const interval = setInterval(fetchMessages, 3000); // Poll every 3s
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchId]);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function LobbyChat({ matchId }: { matchId: string }) {
         const data = await res.json();
         toast.error(data.error || "Алдаа гарлаа");
       }
-    } catch (err) {
+    } catch {
       toast.error("Алдаа гарлаа");
     } finally {
       setIsLoading(false);

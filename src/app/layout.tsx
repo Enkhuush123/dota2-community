@@ -17,6 +17,7 @@ import { Ping } from "@/components/Ping";
 import { InvitePoller } from "@/components/InvitePoller";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Toaster } from 'sonner';
+import { Background3D } from "@/components/Background3D";
 
 export default async function RootLayout({
   children,
@@ -40,7 +41,8 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.variable} antialiased min-h-screen bg-background text-foreground flex flex-col`}>
+      <body className={`${inter.variable} antialiased min-h-screen bg-transparent text-foreground flex flex-col`}>
+        <Background3D />
         <Toaster richColors position="top-center" theme="dark" />
         <Ping />
         <InvitePoller />
